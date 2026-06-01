@@ -20,6 +20,22 @@ export type VerifiedTelegramUser = {
 
 const TELEGRAM_MAX_AGE_SECONDS = 60 * 60 * 24;
 
+export function getAuthErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === "object" && error !== null) {
+    const payload = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const message = typeof payload.message === "string" ? payload.message : "";
+    const details = typeof payload.details === "string" ? payload.details : "";
+    const hint = typeof payload.hint === "string" ? payload.hint : "";
+    const code = typeof payload.code === "string" ? payload.code : "";
+    const parts = [message, details, hint, code ? `Code: ${code}` : ""].filter(Boolean);
+    if (parts.length > 0) return parts.join(" ");
+  }
+
+  return fallback;
+}
+
 function requireBotToken() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { setSessionCookie } from "@/lib/session";
-import { type TelegramLoginPayload, verifyLoginWidgetPayload } from "@/lib/telegram";
+import { getAuthErrorMessage, type TelegramLoginPayload, verifyLoginWidgetPayload } from "@/lib/telegram";
 import { upsertTelegramUser } from "@/lib/db";
 
 function loginRedirect(request: Request, path: string) {
@@ -21,8 +21,10 @@ export async function GET(request: Request) {
     setSessionCookie(response, user);
     return response;
   } catch (error) {
+    const message = getAuthErrorMessage(error, "Telegram login failed");
+    console.error("[telegram-login-widget]", message);
     const url = loginRedirect(request, "/login");
-    url.searchParams.set("error", error instanceof Error ? error.message : "Telegram login failed");
+    url.searchParams.set("error", message);
     return NextResponse.redirect(url);
   }
 }
@@ -35,9 +37,8 @@ export async function POST(request: Request) {
     setSessionCookie(response, user);
     return response;
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Telegram login failed" },
-      { status: 401 }
-    );
+    const message = getAuthErrorMessage(error, "Telegram login failed");
+    console.error("[telegram-login-widget]", message);
+    return NextResponse.json({ message }, { status: 401 });
   }
 }

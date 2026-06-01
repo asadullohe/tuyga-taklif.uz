@@ -36,6 +36,7 @@ export function LoginClient({
   const [widgetStatus, setWidgetStatus] = useState<WidgetStatus>("idle");
   const [origin, setOrigin] = useState("");
   const [authOrigin, setAuthOrigin] = useState("");
+  const [hasMiniAppInitData, setHasMiniAppInitData] = useState(false);
   const [redirectingToPrimaryDomain, setRedirectingToPrimaryDomain] = useState(false);
 
   const completeLogin = useCallback(async (endpoint: string, body?: unknown) => {
@@ -76,6 +77,8 @@ export function LoginClient({
 
   useEffect(() => {
     const initData = window.Telegram?.WebApp?.initData;
+    setHasMiniAppInitData(Boolean(initData));
+
     if (initData) {
       window.Telegram?.WebApp?.ready?.();
       void completeLogin("/api/auth/telegram/mini-app", { initData });
@@ -173,10 +176,16 @@ export function LoginClient({
           </div>
         </div>
 
-        <Button type="button" variant="outline" className="w-full justify-between" onClick={loginWithMiniApp}>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-between"
+          onClick={loginWithMiniApp}
+          disabled={!hasMiniAppInitData}
+        >
           <span className="inline-flex items-center gap-2">
             <Bot className="h-4 w-4" />
-            Telegram Mini App orqali kirish
+            {hasMiniAppInitData ? "Telegram Mini App orqali kirish" : "Mini App faqat Telegram ichida"}
           </span>
           <ExternalLink className="h-4 w-4" />
         </Button>

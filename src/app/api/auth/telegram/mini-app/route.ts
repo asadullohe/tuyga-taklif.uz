@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { upsertTelegramUser } from "@/lib/db";
 import { setSessionCookie } from "@/lib/session";
-import { verifyMiniAppInitData } from "@/lib/telegram";
+import { getAuthErrorMessage, verifyMiniAppInitData } from "@/lib/telegram";
 
 export async function POST(request: Request) {
   try {
@@ -16,9 +16,8 @@ export async function POST(request: Request) {
     setSessionCookie(response, user);
     return response;
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Telegram Mini App login failed" },
-      { status: 401 }
-    );
+    const message = getAuthErrorMessage(error, "Telegram Mini App login failed");
+    console.error("[telegram-mini-app]", message);
+    return NextResponse.json({ message }, { status: 401 });
   }
 }
