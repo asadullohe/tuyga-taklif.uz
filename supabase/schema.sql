@@ -95,42 +95,32 @@ create policy "public analytics insert for published invitation"
     )
   );
 
+with wedding_schema as (
+  select '[
+    {"name":"brideName","label":"Kelin ismi","type":"text","placeholder":"Zebo","required":true},
+    {"name":"groomName","label":"Kuyov ismi","type":"text","placeholder":"Ali","required":true},
+    {"name":"eventDate","label":"Sana","type":"date","required":true},
+    {"name":"eventTime","label":"Vaqt","type":"time","required":true},
+    {"name":"venueName","label":"To''yxona","type":"text","placeholder":"Navro''z Palace","required":true},
+    {"name":"venueAddress","label":"Manzil","type":"textarea","placeholder":"Toshkent shahri, ...","required":true},
+    {"name":"hostText","label":"Taklif matni","type":"textarea","required":true},
+    {"name":"coverImageUrl","label":"Rasm URL","type":"url"},
+    {"name":"musicUrl","label":"Musiqa URL","type":"url"}
+  ]'::jsonb as schema
+)
 insert into public.templates (id, name, category, description, template_schema, status)
-values
-  (
-    'classic-rose',
-    'Classic Rose',
-    'wedding',
-    'Nozik gul aksentlari bilan klassik to''y taklifnomasi.',
-    '[
-      {"name":"brideName","label":"Kelin ismi","type":"text","placeholder":"Zebo","required":true},
-      {"name":"groomName","label":"Kuyov ismi","type":"text","placeholder":"Ali","required":true},
-      {"name":"eventDate","label":"Sana","type":"date","required":true},
-      {"name":"eventTime","label":"Vaqt","type":"time","required":true},
-      {"name":"venueName","label":"To''yxona","type":"text","placeholder":"Navro''z Palace","required":true},
-      {"name":"venueAddress","label":"Manzil","type":"textarea","placeholder":"Toshkent shahri, ...","required":true},
-      {"name":"hostText","label":"Taklif matni","type":"textarea","required":true},
-      {"name":"coverImageUrl","label":"Rasm URL","type":"url"},
-      {"name":"musicUrl","label":"Musiqa URL","type":"url"}
-    ]'::jsonb,
-    'active'
-  ),
-  (
-    'modern-minimal',
-    'Modern Minimal',
-    'wedding',
-    'Toza tipografiya, keng bo''sh joy va zamonaviy kompozitsiya.',
-    '[
-      {"name":"brideName","label":"Kelin ismi","type":"text","placeholder":"Zebo","required":true},
-      {"name":"groomName","label":"Kuyov ismi","type":"text","placeholder":"Ali","required":true},
-      {"name":"eventDate","label":"Sana","type":"date","required":true},
-      {"name":"eventTime","label":"Vaqt","type":"time","required":true},
-      {"name":"venueName","label":"To''yxona","type":"text","placeholder":"Navro''z Palace","required":true},
-      {"name":"venueAddress","label":"Manzil","type":"textarea","placeholder":"Toshkent shahri, ...","required":true},
-      {"name":"hostText","label":"Taklif matni","type":"textarea","required":true},
-      {"name":"coverImageUrl","label":"Rasm URL","type":"url"},
-      {"name":"musicUrl","label":"Musiqa URL","type":"url"}
-    ]'::jsonb,
-    'active'
-  )
+select template.id, template.name, 'wedding', template.description, wedding_schema.schema, 'active'
+from wedding_schema,
+(values
+  ('classic-rose', 'Classic Rose', 'Floating heartlar va rose card bilan klassik romantik taklifnoma.'),
+  ('modern-minimal', 'Modern Minimal', 'Oq bo''sh joy, nozik line-art va sokin zamonaviy kompozitsiya.'),
+  ('royal-emerald', 'Royal Emerald', 'Zumrad fon, oltin seal va royal nikoh kayfiyati.'),
+  ('golden-noor', 'Golden Noor', 'Noor nuri, arabesque naqsh va iliq oltin atmosfera.'),
+  ('pearl-blush', 'Pearl Blush', 'Pearl rang, blush gradient va yumshoq luxury ko''rinish.'),
+  ('midnight-starry', 'Midnight Starry', 'Tun osmoni, yulduz zarralari va cinematic entrance.'),
+  ('garden-bloom', 'Garden Bloom', 'Gul bog''i, barg animatsiyasi va bahorona bayram kayfiyati.'),
+  ('silk-lilac', 'Silk Lilac', 'Ipak fon, lilac aksent va elegant editorial uslub.'),
+  ('desert-saffron', 'Desert Saffron', 'Saffron, qum to''lqinlari va sharqona iliq kompozitsiya.'),
+  ('ocean-glass', 'Ocean Glass', 'Shisha effekt, dengiz ranglari va yengil shimmer animatsiya.')
+) as template(id, name, description)
 on conflict (id) do nothing;

@@ -31,26 +31,24 @@ export const defaultWeddingData: WeddingFormData = {
 };
 
 export const seedTemplates: InvitationTemplate[] = [
-  {
-    id: "classic-rose",
-    name: "Classic Rose",
-    category: "wedding",
-    description: "Nozik gul aksentlari bilan klassik to'y taklifnomasi.",
-    previewImageUrl: null,
-    schema: weddingTemplateFields,
-    status: "active",
-    createdAt: new Date("2026-01-01").toISOString(),
-    updatedAt: new Date("2026-01-01").toISOString()
-  },
-  {
-    id: "modern-minimal",
-    name: "Modern Minimal",
-    category: "wedding",
-    description: "Toza tipografiya, keng bo'sh joy va zamonaviy kompozitsiya.",
-    previewImageUrl: null,
-    schema: weddingTemplateFields,
-    status: "active",
-    createdAt: new Date("2026-01-01").toISOString(),
-    updatedAt: new Date("2026-01-01").toISOString()
-  }
-];
+  ["classic-rose", "Classic Rose", "Floating heartlar va rose card bilan klassik romantik taklifnoma."],
+  ["modern-minimal", "Modern Minimal", "Oq bo'sh joy, nozik line-art va sokin zamonaviy kompozitsiya."],
+  ["royal-emerald", "Royal Emerald", "Zumrad fon, oltin seal va royal nikoh kayfiyati."],
+  ["golden-noor", "Golden Noor", "Noor nuri, arabesque naqsh va iliq oltin atmosfera."],
+  ["pearl-blush", "Pearl Blush", "Pearl rang, blush gradient va yumshoq luxury ko'rinish."],
+  ["midnight-starry", "Midnight Starry", "Tun osmoni, yulduz zarralari va cinematic entrance."],
+  ["garden-bloom", "Garden Bloom", "Gul bog'i, barg animatsiyasi va bahorona bayram kayfiyati."],
+  ["silk-lilac", "Silk Lilac", "Ipak fon, lilac aksent va elegant editorial uslub."],
+  ["desert-saffron", "Desert Saffron", "Saffron, qum to'lqinlari va sharqona iliq kompozitsiya."],
+  ["ocean-glass", "Ocean Glass", "Shisha effekt, dengiz ranglari va yengil shimmer animatsiya."]
+].map(([id, name, description]) => ({
+  id,
+  name,
+  category: "wedding",
+  description,
+  previewImageUrl: null,
+  schema: weddingTemplateFields,
+  status: "active",
+  createdAt: new Date("2026-01-01").toISOString(),
+  updatedAt: new Date("2026-01-01").toISOString()
+}));

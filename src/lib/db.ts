@@ -49,6 +49,38 @@ const memory =
     rsvps: []
   });
 
+const globalForTemplateSeed = globalThis as typeof globalThis & {
+  __tuygaTaklifTemplatesSeeded?: boolean;
+};
+
+function templateToRow(template: InvitationTemplate) {
+  return {
+    id: template.id,
+    name: template.name,
+    category: template.category,
+    description: template.description,
+    preview_image_url: template.previewImageUrl,
+    template_schema: template.schema,
+    status: template.status
+  };
+}
+
+async function ensureSeedTemplates(supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>) {
+  if (globalForTemplateSeed.__tuygaTaklifTemplatesSeeded) return;
+
+  const { error } = await supabase.from("templates").upsert(seedTemplates.map(templateToRow), {
+    onConflict: "id",
+    ignoreDuplicates: true
+  });
+
+  if (error) {
+    console.error("[templates-seed]", error.message);
+    return;
+  }
+
+  globalForTemplateSeed.__tuygaTaklifTemplatesSeeded = true;
+}
+
 function templateFromRow(row: Record<string, any>): InvitationTemplate {
   return {
     id: row.id,
@@ -171,6 +203,8 @@ export async function upsertTelegramUser(input: TelegramUserInput) {
 export async function getActiveTemplates() {
   const supabase = supabaseOrNull();
   if (supabase) {
+    await ensureSeedTemplates(supabase);
+
     const { data, error } = await supabase
       .from("templates")
       .select("*")
