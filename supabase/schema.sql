@@ -112,15 +112,20 @@ insert into public.templates (id, name, category, description, template_schema, 
 select template.id, template.name, 'wedding', template.description, wedding_schema.schema, 'active'
 from wedding_schema,
 (values
-  ('classic-rose', 'Classic Rose', 'Floating heartlar va rose card bilan klassik romantik taklifnoma.'),
-  ('modern-minimal', 'Modern Minimal', 'Oq bo''sh joy, nozik line-art va sokin zamonaviy kompozitsiya.'),
-  ('royal-emerald', 'Royal Emerald', 'Zumrad fon, oltin seal va royal nikoh kayfiyati.'),
-  ('golden-noor', 'Golden Noor', 'Noor nuri, arabesque naqsh va iliq oltin atmosfera.'),
-  ('pearl-blush', 'Pearl Blush', 'Pearl rang, blush gradient va yumshoq luxury ko''rinish.'),
-  ('midnight-starry', 'Midnight Starry', 'Tun osmoni, yulduz zarralari va cinematic entrance.'),
-  ('garden-bloom', 'Garden Bloom', 'Gul bog''i, barg animatsiyasi va bahorona bayram kayfiyati.'),
-  ('silk-lilac', 'Silk Lilac', 'Ipak fon, lilac aksent va elegant editorial uslub.'),
-  ('desert-saffron', 'Desert Saffron', 'Saffron, qum to''lqinlari va sharqona iliq kompozitsiya.'),
-  ('ocean-glass', 'Ocean Glass', 'Shisha effekt, dengiz ranglari va yengil shimmer animatsiya.')
+  ('classic-rose', 'Classic Rose', 'Foto fon, markaziy romantik card va floating heart entrance.'),
+  ('modern-minimal', 'Modern Minimal', 'Asimmetrik editorial layout, grid chiziqlar va ultra toza tipografiya.'),
+  ('royal-emerald', 'Royal Emerald', 'Saroy arch kompozitsiyasi, oltin gate ramka va royal seal.'),
+  ('golden-noor', 'Golden Noor', 'Mihrab shakli, nur rays animatsiyasi va arabesque rhythm.'),
+  ('pearl-blush', 'Pearl Blush', 'Pearl photo-window, yumshoq luxury panel va capsule date.'),
+  ('midnight-starry', 'Midnight Starry', 'Dark poster layout, starfield motion va dramatik date orbit.'),
+  ('garden-bloom', 'Garden Bloom', 'Flower ring, leaf drift, bog''cha tile kompozitsiyasi.'),
+  ('silk-lilac', 'Silk Lilac', 'Magazine editorial flow, silk texture va diagonal story block.'),
+  ('desert-saffron', 'Desert Saffron', 'Scroll parchment markazi, sand-line motion va sharqona date marks.'),
+  ('ocean-glass', 'Ocean Glass', 'Glassmorphism panel, shimmer motion va pill-shaped info rows.')
 ) as template(id, name, description)
-on conflict (id) do nothing;
+on conflict (id) do update set
+  name = excluded.name,
+  description = excluded.description,
+  template_schema = excluded.template_schema,
+  status = excluded.status,
+  updated_at = now();

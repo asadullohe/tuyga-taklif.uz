@@ -210,6 +210,518 @@
   backdrop-filter: blur(14px);
 }
 
+.invite-layout-minimal {
+  background:
+    radial-gradient(circle at 92% 14%, rgba(15, 118, 110, 0.18), transparent 24%),
+    linear-gradient(90deg, color-mix(in srgb, var(--invite-accent) 13%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, var(--invite-accent) 10%, transparent) 1px, transparent 1px),
+    var(--invite-card);
+  background-size: 54px 54px, 54px 54px, cover;
+}
+
+.invite-layout-minimal::before {
+  inset: auto 28px 28px auto;
+  width: 120px;
+  height: 120px;
+  border: 1px solid var(--invite-accent);
+  border-radius: 999px;
+}
+
+.invite-layout-minimal::after {
+  display: none;
+}
+
+.invite-minimal-grid {
+  display: grid;
+  min-height: 720px;
+  grid-template-rows: auto 1fr auto;
+  padding: 34px;
+}
+
+.invite-minimal-date {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid color-mix(in srgb, var(--invite-accent) 30%, transparent);
+  padding-bottom: 24px;
+}
+
+.invite-minimal-date span {
+  font-family: Georgia, serif;
+  font-size: 84px;
+  line-height: 0.8;
+  color: var(--invite-accent);
+}
+
+.invite-minimal-date b {
+  max-width: 120px;
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  line-height: 1.6;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-minimal-copy {
+  align-self: center;
+}
+
+.invite-minimal-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  border-left: 4px solid var(--invite-accent);
+  padding: 18px 0 0 18px;
+}
+
+.invite-layout-royal {
+  background:
+    radial-gradient(circle at 50% 5%, rgba(214, 168, 79, 0.3), transparent 28%),
+    linear-gradient(90deg, rgba(214, 168, 79, 0.08), transparent 22%, transparent 78%, rgba(214, 168, 79, 0.08)),
+    var(--invite-card);
+}
+
+.invite-layout-royal::before {
+  inset: 22px;
+  border: 1px solid color-mix(in srgb, var(--invite-accent) 44%, transparent);
+  border-radius: 6rem 6rem 1rem 1rem;
+}
+
+.invite-royal-gate {
+  position: absolute;
+  inset: 38px 36px auto;
+  height: 250px;
+  border: 1px solid color-mix(in srgb, var(--invite-accent) 42%, transparent);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+  pointer-events: none;
+}
+
+.invite-royal-gate::before,
+.invite-royal-gate::after {
+  content: "";
+  position: absolute;
+  top: 24px;
+  bottom: -160px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--invite-accent), transparent);
+}
+
+.invite-royal-gate::before { left: 28px; }
+.invite-royal-gate::after { right: 28px; }
+
+.invite-royal-date {
+  display: grid;
+  grid-template-columns: 1fr 104px 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  border-radius: 28px;
+  border: 1px solid color-mix(in srgb, var(--invite-accent) 28%, transparent);
+  background: rgba(255, 255, 255, 0.54);
+  padding: 14px;
+  box-shadow: 0 18px 42px rgba(3, 30, 24, 0.08);
+}
+
+.invite-royal-date span {
+  display: grid;
+  min-height: 70px;
+  place-items: center;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.46);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-royal-date b {
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f8edcf, var(--invite-accent), #8d6421);
+  color: white;
+  font-family: Georgia, serif;
+  font-size: 54px;
+  line-height: 1;
+  box-shadow: 0 20px 44px rgba(141, 100, 33, 0.24);
+}
+
+.invite-layout-noor {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 225, 150, 0.62), transparent 24%),
+    repeating-radial-gradient(circle at 50% 18%, transparent 0 18px, rgba(183, 121, 31, 0.08) 19px 20px),
+    var(--invite-card);
+}
+
+.invite-layout-noor::before {
+  inset: 24px;
+  border: 1px solid color-mix(in srgb, var(--invite-accent) 28%, transparent);
+  border-radius: 11rem 11rem 1rem 1rem;
+}
+
+.invite-noor-dome {
+  margin: 0 auto;
+  max-width: 280px;
+  padding: 48px 22px 30px;
+  border: 1px solid color-mix(in srgb, var(--invite-accent) 32%, transparent);
+  border-radius: 999px 999px 18px 18px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 222, 145, 0.4), transparent 32%),
+    rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.22);
+}
+
+.invite-noor-lamp {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  margin: 0 auto;
+  border-radius: 999px;
+  color: var(--invite-accent);
+  background: white;
+  box-shadow: 0 0 34px rgba(183, 121, 31, 0.28);
+}
+
+.invite-noor-date {
+  display: grid;
+  grid-template-columns: 1fr 84px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.invite-noor-date span {
+  border-top: 1px solid color-mix(in srgb, var(--invite-accent) 28%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--invite-accent) 28%, transparent);
+  padding: 12px 0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-noor-date b {
+  display: grid;
+  width: 84px;
+  height: 84px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--invite-accent-soft);
+  color: var(--invite-accent);
+  font-family: Georgia, serif;
+  font-size: 48px;
+}
+
+.invite-layout-pearl {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.9), transparent 18%),
+    radial-gradient(circle at 80% 18%, rgba(196, 91, 124, 0.18), transparent 24%),
+    var(--invite-card);
+}
+
+.invite-layout-pearl::before {
+  inset: 18px;
+  border: 8px double color-mix(in srgb, var(--invite-accent) 22%, white);
+  border-radius: 2rem;
+}
+
+.invite-pearl-hero {
+  position: relative;
+  display: grid;
+  min-height: 318px;
+  place-items: center;
+  overflow: hidden;
+  padding: 42px 24px;
+  background:
+    linear-gradient(180deg, rgba(45, 28, 37, 0.08), rgba(45, 28, 37, 0.42)),
+    url("https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=900&q=80") center/cover;
+}
+
+.invite-pearl-hero::after {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 1.6rem;
+  pointer-events: none;
+}
+
+.invite-pearl-photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 22px 50px rgba(53, 36, 45, 0.24);
+}
+
+.invite-layout-midnight {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(246, 199, 111, 0.22), transparent 20%),
+    linear-gradient(160deg, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.95));
+}
+
+.invite-layout-midnight::before {
+  inset: 22px;
+  border: 1px solid rgba(246, 199, 111, 0.2);
+  border-radius: 1.4rem;
+}
+
+.invite-layout-midnight::after {
+  background: radial-gradient(circle, rgba(246, 199, 111, 0.95) 0 1px, transparent 2px);
+  background-size: 28px 34px;
+  inset: 0;
+  opacity: 0.22;
+  animation: invite-star-pan 12s linear infinite;
+}
+
+.invite-layout-midnight .bg-white\/55 {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.invite-moon {
+  position: absolute;
+  top: 38px;
+  right: 42px;
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.9), transparent 12%),
+    linear-gradient(135deg, #f9dfa1, #8a5d22);
+  box-shadow: 0 0 60px rgba(246, 199, 111, 0.28);
+}
+
+.invite-starry-strip {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px 16px;
+  margin-top: 34px;
+  align-items: center;
+  border: 1px solid rgba(246, 199, 111, 0.24);
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.invite-starry-strip b {
+  grid-row: span 2;
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--invite-accent);
+  color: var(--invite-accent);
+  font-family: Georgia, serif;
+  font-size: 54px;
+}
+
+.invite-starry-strip span {
+  color: var(--invite-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.invite-layout-garden {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(247, 167, 181, 0.34), transparent 18%),
+    radial-gradient(circle at 86% 24%, rgba(63, 143, 95, 0.24), transparent 22%),
+    var(--invite-card);
+}
+
+.invite-layout-garden::before {
+  inset: 20px;
+  border: 1px dashed color-mix(in srgb, var(--invite-accent) 38%, transparent);
+  border-radius: 1.25rem;
+}
+
+.invite-garden-canopy {
+  position: relative;
+  min-height: 190px;
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(247, 167, 181, 0.58), transparent 18%),
+    radial-gradient(circle at 82% 20%, rgba(63, 143, 95, 0.42), transparent 20%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(232, 246, 232, 0.84));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.invite-garden-canopy::before {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  background:
+    radial-gradient(circle at 12% 34%, rgba(63, 143, 95, 0.18), transparent 7%),
+    radial-gradient(circle at 30% 18%, rgba(247, 167, 181, 0.25), transparent 8%),
+    radial-gradient(circle at 74% 30%, rgba(63, 143, 95, 0.2), transparent 8%),
+    radial-gradient(circle at 90% 12%, rgba(247, 167, 181, 0.26), transparent 8%);
+}
+
+.invite-flower-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 154px;
+  height: 154px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 38%, transparent 39%),
+    conic-gradient(from 16deg, #f6a7b5, #fff5d6, #74b987, #f6a7b5);
+  box-shadow: 0 16px 40px rgba(63, 143, 95, 0.18);
+}
+
+.invite-flower-ring span {
+  font-family: Georgia, serif;
+  font-size: 52px;
+  color: var(--invite-accent);
+}
+
+.invite-layout-silk {
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.68), transparent 35%),
+    repeating-linear-gradient(142deg, transparent 0 18px, rgba(139, 90, 131, 0.08) 19px 20px),
+    var(--invite-card);
+}
+
+.invite-layout-silk::before {
+  inset: auto 0 0 auto;
+  width: 72%;
+  height: 52%;
+  border: 0;
+  border-radius: 18rem 0 0 0;
+  background: color-mix(in srgb, var(--invite-accent) 12%, transparent);
+}
+
+.invite-silk-cover {
+  display: flex;
+  min-height: 238px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 28px;
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(44, 34, 48, 0.1), rgba(44, 34, 48, 0.52)),
+    radial-gradient(circle at 26% 20%, rgba(255, 255, 255, 0.32), transparent 22%),
+    linear-gradient(135deg, #8b5a83, #d9c3db);
+}
+
+.invite-silk-cover p {
+  max-width: 110px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  line-height: 1.8;
+  text-transform: uppercase;
+}
+
+.invite-silk-cover b {
+  font-family: Georgia, serif;
+  font-size: 88px;
+  line-height: 0.8;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.invite-layout-desert {
+  background:
+    linear-gradient(180deg, rgba(255, 246, 224, 0.85), rgba(255, 255, 255, 0.4)),
+    var(--invite-card);
+}
+
+.invite-layout-desert::before {
+  inset: 20px 16px;
+  border: 1px solid color-mix(in srgb, var(--invite-accent) 28%, transparent);
+  border-left-width: 8px;
+  border-right-width: 8px;
+  border-radius: 1rem;
+}
+
+.invite-scroll {
+  border: 1px solid color-mix(in srgb, var(--invite-accent) 28%, transparent);
+  border-radius: 0.8rem;
+  padding: 42px 24px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 18px, rgba(217, 119, 6, 0.055) 19px 20px),
+    linear-gradient(90deg, rgba(217, 119, 6, 0.08), transparent 14%, transparent 86%, rgba(217, 119, 6, 0.08)),
+    rgba(255, 255, 255, 0.42);
+}
+
+.invite-desert-ornament {
+  width: 160px;
+  height: 20px;
+  margin: 22px auto 0;
+  background:
+    radial-gradient(circle at 50% 50%, var(--invite-accent) 0 7px, transparent 8px),
+    linear-gradient(90deg, transparent, var(--invite-accent), transparent);
+  opacity: 0.65;
+}
+
+.invite-layout-ocean {
+  background: rgba(255, 255, 255, 0.26);
+  backdrop-filter: blur(18px);
+}
+
+.invite-layout-ocean::before {
+  inset: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 1.4rem;
+}
+
+.invite-wave-mark {
+  height: 118px;
+  border-radius: 1.3rem;
+  margin-bottom: 16px;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.78), transparent 16%),
+    repeating-radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.25) 0 4px, transparent 5px 18px),
+    linear-gradient(135deg, rgba(14, 116, 144, 0.38), rgba(221, 247, 251, 0.48));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.invite-glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 1.35rem;
+  padding: 48px 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.16)),
+    color-mix(in srgb, var(--invite-accent-soft) 46%, transparent);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.85);
+}
+
+.invite-quote {
+  max-width: 330px;
+  margin: 22px auto 0;
+  padding: 15px 18px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--invite-accent) 22%, transparent);
+  background: rgba(255, 255, 255, 0.52);
+  color: var(--invite-muted);
+  font-family: Georgia, serif;
+  font-size: 18px;
+  font-style: italic;
+  line-height: 1.5;
+  text-align: center;
+}
+
 @keyframes invite-card-in {
   from {
     opacity: 0;
@@ -302,5 +814,14 @@
   50% {
     opacity: 0.52;
     transform: translateX(20px) rotate(4deg);
+  }
+}
+
+@keyframes invite-star-pan {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(34px);
   }
 }

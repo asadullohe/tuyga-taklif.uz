@@ -69,8 +69,7 @@ async function ensureSeedTemplates(supabase: NonNullable<ReturnType<typeof getSu
   if (globalForTemplateSeed.__tuygaTaklifTemplatesSeeded) return;
 
   const { error } = await supabase.from("templates").upsert(seedTemplates.map(templateToRow), {
-    onConflict: "id",
-    ignoreDuplicates: true
+    onConflict: "id"
   });
 
   if (error) {
