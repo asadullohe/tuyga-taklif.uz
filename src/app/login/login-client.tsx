@@ -101,7 +101,7 @@ export function LoginClient({
     script.setAttribute("data-size", "large");
     script.setAttribute("data-userpic", "false");
     script.setAttribute("data-request-access", "write");
-    script.setAttribute("data-auth-url", `${authOrigin}/api/auth/telegram/login-widget`);
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
     script.onload = () => setWidgetStatus("ready");
     script.onerror = () => {
       setWidgetStatus("error");
