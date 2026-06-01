@@ -22,9 +22,11 @@ declare global {
 type WidgetStatus = "idle" | "loading" | "ready" | "error" | "missing_bot";
 
 export function LoginClient({
+  appUrl,
   botUsername,
   initialError
 }: {
+  appUrl?: string;
   botUsername?: string;
   initialError?: string;
 }) {
@@ -33,6 +35,8 @@ export function LoginClient({
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [widgetStatus, setWidgetStatus] = useState<WidgetStatus>("idle");
   const [origin, setOrigin] = useState("");
+  const [authOrigin, setAuthOrigin] = useState("");
+  const [redirectingToPrimaryDomain, setRedirectingToPrimaryDomain] = useState(false);
 
   const completeLogin = useCallback(async (endpoint: string, body?: unknown) => {
     setError(null);
@@ -51,13 +55,24 @@ export function LoginClient({
   }, [router]);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    const currentOrigin = window.location.origin;
+    const primaryOrigin = getOrigin(appUrl) || currentOrigin;
+
+    setOrigin(currentOrigin);
+    setAuthOrigin(primaryOrigin);
+
+    if (shouldUsePrimaryDomain(currentOrigin, primaryOrigin)) {
+      setRedirectingToPrimaryDomain(true);
+      window.location.replace(`${primaryOrigin}/login`);
+      return;
+    }
+
     window.onTelegramAuth = (user) => completeLogin("/api/auth/telegram/login-widget", user);
 
     return () => {
       delete window.onTelegramAuth;
     };
-  }, [completeLogin]);
+  }, [appUrl, completeLogin]);
 
   useEffect(() => {
     const initData = window.Telegram?.WebApp?.initData;
@@ -72,7 +87,7 @@ export function LoginClient({
       setWidgetStatus("missing_bot");
       return;
     }
-    if (!widgetRef.current || !origin) return;
+    if (!widgetRef.current || !origin || !authOrigin || redirectingToPrimaryDomain) return;
 
     setWidgetStatus("loading");
     widgetRef.current.innerHTML = "";
@@ -83,7 +98,7 @@ export function LoginClient({
     script.setAttribute("data-size", "large");
     script.setAttribute("data-userpic", "false");
     script.setAttribute("data-request-access", "write");
-    script.setAttribute("data-auth-url", `${origin}/api/auth/telegram/login-widget`);
+    script.setAttribute("data-auth-url", `${authOrigin}/api/auth/telegram/login-widget`);
     script.onload = () => setWidgetStatus("ready");
     script.onerror = () => {
       setWidgetStatus("error");
@@ -99,7 +114,7 @@ export function LoginClient({
     }, 5000);
 
     return () => window.clearTimeout(timeout);
-  }, [botUsername, origin]);
+  }, [authOrigin, botUsername, origin, redirectingToPrimaryDomain]);
 
   async function loginWithMiniApp() {
     const initData = window.Telegram?.WebApp?.initData;
@@ -132,7 +147,7 @@ export function LoginClient({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">Web Login Widget</p>
-              <p className="mt-1 text-xs text-muted-foreground">{origin || "Origin aniqlanmoqda..."}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{authOrigin || origin || "Origin aniqlanmoqda..."}</p>
             </div>
             <StatusBadge status={widgetStatus} />
           </div>
@@ -149,6 +164,12 @@ export function LoginClient({
             {widgetStatus === "missing_bot" ? (
               <span className="text-sm text-muted-foreground">Bot username .env.local’da berilmagan.</span>
             ) : null}
+            {redirectingToPrimaryDomain ? (
+              <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Asosiy domenga o‘tilmoqda...
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -164,8 +185,8 @@ export function LoginClient({
           <Bot className="h-4 w-4" />
           <p className="mt-2">
             Agar web widget chiqmasa, BotFather’da <span className="font-semibold">Web Login / Allowed URLs</span> ga{" "}
-            <span className="font-semibold">{origin || "shu domen"}</span> qo‘shing. Localhost odatda public domen
-            emas.
+            <span className="font-semibold">{authOrigin || origin || "shu domen"}</span> qo‘shing. Netlify branch
+            domainlari Telegram’da alohida domen hisoblanadi.
           </p>
         </div>
 
@@ -185,6 +206,23 @@ export function LoginClient({
       </CardContent>
     </Card>
   );
+}
+
+function getOrigin(value?: string) {
+  if (!value) return "";
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "";
+  }
+}
+
+function shouldUsePrimaryDomain(currentOrigin: string, primaryOrigin: string) {
+  if (!primaryOrigin || currentOrigin === primaryOrigin) return false;
+
+  const hostname = new URL(currentOrigin).hostname;
+  return !["localhost", "127.0.0.1", "::1"].includes(hostname);
 }
 
 function StatusBadge({ status }: { status: WidgetStatus }) {

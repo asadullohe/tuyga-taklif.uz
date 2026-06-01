@@ -8,6 +8,7 @@ type PageProps = {
 export default async function LoginPage({ searchParams }: PageProps) {
   const { error } = await searchParams;
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   return (
     <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_20%_20%,rgba(244,114,182,0.18),transparent_28%),radial-gradient(circle_at_80%_10%,rgba(20,184,166,0.18),transparent_24%),linear-gradient(135deg,#fffaf4_0%,#f6fbf8_52%,#fff1f5_100%)] px-4 py-8">
@@ -26,7 +27,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
               orqali sessiya avtomatik tasdiqlanadi.
             </p>
           </section>
-          <LoginClient botUsername={botUsername} initialError={error} />
+          <LoginClient appUrl={appUrl} botUsername={botUsername} initialError={error} />
         </div>
       </div>
     </main>
