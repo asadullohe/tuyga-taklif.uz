@@ -42,8 +42,14 @@ export function parseSessionToken(token?: string): SessionPayload | null {
   const [encodedPayload, signature] = token.split(".");
   if (!encodedPayload || !signature || sign(encodedPayload) !== signature) return null;
 
-  const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as SessionPayload;
-  if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
+  let payload: SessionPayload;
+  try {
+    payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as SessionPayload;
+  } catch {
+    return null;
+  }
+
+  if (!payload.userId || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
 
   return payload;
 }

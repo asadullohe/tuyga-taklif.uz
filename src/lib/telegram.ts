@@ -29,6 +29,8 @@ function requireBotToken() {
 }
 
 function timingSafeHexEqual(a: string, b: string) {
+  if (!/^[a-f0-9]+$/i.test(a) || !/^[a-f0-9]+$/i.test(b)) return false;
+
   const aBuffer = Buffer.from(a, "hex");
   const bBuffer = Buffer.from(b, "hex");
   return aBuffer.length === bBuffer.length && crypto.timingSafeEqual(aBuffer, bBuffer);
