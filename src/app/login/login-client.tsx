@@ -21,13 +21,18 @@ declare global {
 
 type WidgetStatus = "idle" | "loading" | "ready" | "error" | "missing_bot";
 
-export function LoginClient({ initialError }: { initialError?: string }) {
+export function LoginClient({
+  botUsername,
+  initialError
+}: {
+  botUsername?: string;
+  initialError?: string;
+}) {
   const router = useRouter();
   const widgetRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [widgetStatus, setWidgetStatus] = useState<WidgetStatus>("idle");
   const [origin, setOrigin] = useState("");
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
   const completeLogin = useCallback(async (endpoint: string, body?: unknown) => {
     setError(null);
