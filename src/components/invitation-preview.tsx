@@ -23,6 +23,7 @@ type InviteTheme = {
   particle: string;
   motif: string;
   layout: keyof typeof layouts;
+  shellClassName?: string;
 };
 
 type PreviewModel = {
@@ -53,29 +54,78 @@ const themes: Record<string, InviteTheme> = {
     motif: "floating-hearts",
     layout: "rose"
   },
+  "photo-collage": {
+    id: "photo-collage",
+    label: "Editorial collage",
+    accent: "#b88945",
+    accentSoft: "#f7ead8",
+    ink: "#2d241a",
+    muted: "#766a5d",
+    card: "linear-gradient(180deg, #fffaf2, #f2e4d1)",
+    stage:
+      "linear-gradient(135deg, #221910 0%, #8c6c47 52%, #f8ead8 100%)",
+    border: "rgba(184,137,69,.30)",
+    shadow: "0 30px 90px rgba(66, 46, 25, .34)",
+    particle: "rgba(255,246,232,.72)",
+    motif: "collage-dust",
+    layout: "collage",
+    shellClassName: "aspect-square"
+  },
+  "blue-ink-a4": {
+    id: "blue-ink-a4",
+    label: "Blue ink",
+    accent: "#2f6fba",
+    accentSoft: "#e8f0fb",
+    ink: "#121722",
+    muted: "#647083",
+    card: "linear-gradient(180deg, #ffffff, #f4f8ff)",
+    stage:
+      "linear-gradient(135deg, #111827 0%, #1d4774 48%, #f5f8ff 100%)",
+    border: "rgba(47,111,186,.22)",
+    shadow: "0 30px 90px rgba(17, 39, 72, .34)",
+    particle: "rgba(47,111,186,.28)",
+    motif: "blue-ink-sprigs",
+    layout: "blueInk"
+  },
+  "gallery-collage": {
+    id: "gallery-collage",
+    label: "Gallery collage",
+    accent: "#9f6b32",
+    accentSoft: "#f3e0c8",
+    ink: "#261c16",
+    muted: "#7a6758",
+    card: "linear-gradient(150deg, rgba(255,253,247,.98), rgba(239,226,210,.96))",
+    stage:
+      "radial-gradient(circle at 22% 18%, rgba(255,255,255,.72), transparent 22%), linear-gradient(135deg, #6e4b2c 0%, #e9d2b2 46%, #fffaf4 100%)",
+    border: "rgba(159,107,50,.28)",
+    shadow: "0 30px 90px rgba(78, 49, 24, .28)",
+    particle: "rgba(159,107,50,.28)",
+    motif: "collage-dust",
+    layout: "gallery"
+  },
   "modern-minimal": {
     id: "modern-minimal",
     label: "Pure line",
-    accent: "#0f766e",
-    accentSoft: "#e7f6f1",
-    ink: "#111827",
-    muted: "#64748b",
-    card: "linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.96))",
-    stage: "linear-gradient(135deg, #f8fafc 0%, #e8f3ee 48%, #fff7ed 100%)",
-    border: "rgba(15,118,110,.18)",
-    shadow: "0 24px 80px rgba(15, 76, 70, .18)",
-    particle: "rgba(15,118,110,.24)",
+    accent: "#111111",
+    accentSoft: "#ece8de",
+    ink: "#111111",
+    muted: "#6f6a62",
+    card: "linear-gradient(180deg, #fffdf8, #f3eee4)",
+    stage: "linear-gradient(135deg, #101010 0%, #2a251f 46%, #e9dfd0 100%)",
+    border: "rgba(17,17,17,.16)",
+    shadow: "0 28px 80px rgba(17, 17, 17, .24)",
+    particle: "rgba(255,255,255,.24)",
     motif: "line-rain",
     layout: "minimal"
   },
   "royal-emerald": {
     id: "royal-emerald",
     label: "Royal majlis",
-    accent: "#d6a84f",
-    accentSoft: "#f8edcf",
-    ink: "#10261f",
-    muted: "#66746c",
-    card: "linear-gradient(145deg, rgba(255,253,247,.98), rgba(239,249,243,.96))",
+    accent: "#d7b46a",
+    accentSoft: "#f7edd2",
+    ink: "#0d261d",
+    muted: "#66766d",
+    card: "linear-gradient(145deg, #fffaf0, #edf6ef)",
     stage:
       "radial-gradient(circle at 20% 10%, rgba(214,168,79,.35), transparent 26%), linear-gradient(135deg, #06281f 0%, #114537 55%, #08231c 100%)",
     border: "rgba(214,168,79,.45)",
@@ -87,11 +137,11 @@ const themes: Record<string, InviteTheme> = {
   "golden-noor": {
     id: "golden-noor",
     label: "Noor light",
-    accent: "#b7791f",
-    accentSoft: "#fff3d6",
-    ink: "#2a1e0d",
-    muted: "#806f54",
-    card: "linear-gradient(160deg, rgba(255,252,241,.98), rgba(255,247,224,.95))",
+    accent: "#bd8126",
+    accentSoft: "#fff0c9",
+    ink: "#2b1d0d",
+    muted: "#7c684e",
+    card: "linear-gradient(160deg, #fffdf4, #f6e7c7)",
     stage:
       "radial-gradient(circle at 50% 16%, rgba(255,214,128,.72), transparent 28%), linear-gradient(135deg, #22160b 0%, #8c5b1f 52%, #1f160f 100%)",
     border: "rgba(183,121,31,.28)",
@@ -119,11 +169,11 @@ const themes: Record<string, InviteTheme> = {
   "midnight-starry": {
     id: "midnight-starry",
     label: "Midnight vow",
-    accent: "#f6c76f",
-    accentSoft: "#263753",
+    accent: "#f0c36f",
+    accentSoft: "#1e2d49",
     ink: "#f8fafc",
     muted: "#cbd5e1",
-    card: "linear-gradient(160deg, rgba(12,23,42,.96), rgba(20,32,57,.94))",
+    card: "linear-gradient(160deg, rgba(7,12,24,.98), rgba(20,31,52,.96))",
     stage:
       "radial-gradient(circle at 20% 20%, rgba(246,199,111,.2), transparent 20%), linear-gradient(135deg, #020617 0%, #13213b 58%, #050815 100%)",
     border: "rgba(246,199,111,.24)",
@@ -135,11 +185,11 @@ const themes: Record<string, InviteTheme> = {
   "garden-bloom": {
     id: "garden-bloom",
     label: "Garden bloom",
-    accent: "#3f8f5f",
-    accentSoft: "#e8f6e8",
-    ink: "#183322",
-    muted: "#637467",
-    card: "linear-gradient(150deg, rgba(255,255,250,.98), rgba(240,250,239,.96))",
+    accent: "#3f7b55",
+    accentSoft: "#e8f1e5",
+    ink: "#1f2f24",
+    muted: "#657166",
+    card: "linear-gradient(150deg, #fffdf6, #eef5eb)",
     stage:
       "radial-gradient(circle at 15% 12%, rgba(247,167,181,.34), transparent 22%), linear-gradient(135deg, #dcefdc 0%, #fff8ef 46%, #cfe9d6 100%)",
     border: "rgba(63,143,95,.22)",
@@ -151,11 +201,11 @@ const themes: Record<string, InviteTheme> = {
   "silk-lilac": {
     id: "silk-lilac",
     label: "Silk whisper",
-    accent: "#8b5a83",
-    accentSoft: "#f2e8f1",
-    ink: "#2c2230",
-    muted: "#766477",
-    card: "linear-gradient(145deg, rgba(255,252,255,.98), rgba(246,238,247,.96))",
+    accent: "#8a617f",
+    accentSoft: "#f0e6ee",
+    ink: "#2b2230",
+    muted: "#786b78",
+    card: "linear-gradient(145deg, #fffafc, #efe4ee)",
     stage:
       "linear-gradient(120deg, rgba(255,255,255,.72), transparent 38%), linear-gradient(135deg, #eadfeb 0%, #fffaf8 48%, #d9c3db 100%)",
     border: "rgba(139,90,131,.24)",
@@ -167,11 +217,11 @@ const themes: Record<string, InviteTheme> = {
   "desert-saffron": {
     id: "desert-saffron",
     label: "Saffron dusk",
-    accent: "#d97706",
-    accentSoft: "#fff0d0",
-    ink: "#35200f",
-    muted: "#7a6047",
-    card: "linear-gradient(150deg, rgba(255,251,240,.98), rgba(255,241,214,.96))",
+    accent: "#c86b2f",
+    accentSoft: "#f7dfc9",
+    ink: "#331d12",
+    muted: "#795d4d",
+    card: "linear-gradient(150deg, #fff8ee, #f4dcc5)",
     stage:
       "radial-gradient(circle at 70% 20%, rgba(255,202,107,.44), transparent 24%), linear-gradient(135deg, #5a2d0d 0%, #d19042 50%, #6a320f 100%)",
     border: "rgba(217,119,6,.24)",
@@ -183,11 +233,11 @@ const themes: Record<string, InviteTheme> = {
   "ocean-glass": {
     id: "ocean-glass",
     label: "Ocean glass",
-    accent: "#0e7490",
-    accentSoft: "#ddf7fb",
-    ink: "#07313c",
-    muted: "#5c7780",
-    card: "linear-gradient(145deg, rgba(255,255,255,.88), rgba(228,248,252,.78))",
+    accent: "#167c89",
+    accentSoft: "#dff4f5",
+    ink: "#07323a",
+    muted: "#5d7579",
+    card: "linear-gradient(145deg, rgba(255,255,255,.9), rgba(221,244,246,.82))",
     stage:
       "radial-gradient(circle at 30% 15%, rgba(255,255,255,.62), transparent 20%), linear-gradient(135deg, #083344 0%, #22a0b6 52%, #d8fbff 100%)",
     border: "rgba(255,255,255,.62)",
@@ -238,6 +288,7 @@ export function InvitationPreview({ data, variant = "classic-rose", className }:
       className={cn(
         "invite-stage relative mx-auto w-full max-w-[560px] overflow-hidden rounded-lg p-4 shadow-2xl sm:p-8",
         `invite-theme-${theme.id}`,
+        theme.shellClassName,
         className
       )}
       style={style}
@@ -272,8 +323,96 @@ function RoseLayout({ model }: { model: PreviewModel }) {
       <Verse />
       <HostText text={model.data.hostText} />
       <VenueBox model={model} />
-      <LocationButton />
+      <LocationButton model={model} />
       <FooterDate value={model.formattedDate} />
+    </Frame>
+  );
+}
+
+function CollageLayout({ model }: { model: PreviewModel }) {
+  const cover = model.data.coverImageUrl || "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80";
+  const altOne = "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1200&q=80";
+  const altTwo = "https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?auto=format&fit=crop&w=1200&q=80";
+  const hero = `${cover}${cover.includes("?") ? "&" : "?"}fit=crop&w=1600&q=88`;
+
+  return (
+    <Frame className="invite-layout-collage aspect-square min-h-0 max-w-none p-0">
+      <div className="invite-collage-shell invite-premium-font">
+        <div className="invite-collage-titleblock invite-reveal">
+          <span>Wedding invitation</span>
+          <h1>{model.data.groomName || "Kuyov"} <em>&</em> {model.data.brideName || "Kelin"}</h1>
+        </div>
+        <div className="invite-collage-board">
+          <div className="invite-collage-photo invite-collage-photo-main invite-reveal" style={{ backgroundImage: `url(${hero})` }} />
+          <div className="invite-collage-photo invite-collage-photo-left invite-reveal" style={{ backgroundImage: `url(${altOne})` }} />
+          <div className="invite-collage-photo invite-collage-photo-right invite-reveal" style={{ backgroundImage: `url(${altTwo})` }} />
+          <div className="invite-collage-date invite-reveal">
+            <b>{model.day}</b>
+            <span>{model.monthYear}</span>
+          </div>
+        </div>
+        <a className="invite-collage-detail invite-reveal" href={getMapHref(model)} target="_blank" rel="noopener noreferrer">
+          <span>{model.time}</span>
+          <p>{model.data.venueName || "To'yxona"} · {model.data.venueAddress || "Manzil"}</p>
+        </a>
+      </div>
+    </Frame>
+  );
+}
+
+function BlueInkLayout({ model }: { model: PreviewModel }) {
+  return (
+    <Frame className="invite-layout-blue-ink rounded-sm px-8 py-10 text-center">
+      <div className="invite-blue-ink-corner invite-blue-ink-corner-tl" />
+      <div className="invite-blue-ink-corner invite-blue-ink-corner-br" />
+      <div className="invite-blue-ink-monogram invite-reveal">
+        {(model.data.groomName || "K").slice(0, 1)}{(model.data.brideName || "K").slice(0, 1)}
+      </div>
+      <p className="invite-reveal invite-blue-ink-label">Wedding invitation</p>
+      <h1 className="invite-reveal invite-blue-ink-title">
+        {model.data.groomName || "Kuyov"}
+        <span>&</span>
+        {model.data.brideName || "Kelin"}
+      </h1>
+      <div className="invite-blue-ink-date invite-reveal">
+        <span>{model.weekday}</span>
+        <b>{model.day}</b>
+        <span>{model.monthYear}</span>
+      </div>
+      <p className="invite-reveal invite-blue-ink-copy">{model.data.hostText}</p>
+      <div className="invite-blue-ink-info invite-reveal">
+        <Meta label="Vaqt" value={model.time} />
+        <MapMeta label="Manzil" model={model} value={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} />
+      </div>
+    </Frame>
+  );
+}
+
+function GalleryLayout({ model }: { model: PreviewModel }) {
+  const cover = model.data.coverImageUrl || "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1200&q=86";
+  const altOne = "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=86";
+  const altTwo = "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=86";
+
+  return (
+    <Frame className="invite-layout-gallery rounded-[1.6rem] p-0">
+      <div className="invite-gallery-rail invite-reveal">
+        <span>Gallery</span>
+        <b>{model.day}</b>
+        <span>{model.monthYear}</span>
+      </div>
+      <div className="invite-gallery-stack">
+        <div className="invite-gallery-photo invite-gallery-photo-a invite-reveal" style={{ backgroundImage: `url(${cover})` }} />
+        <div className="invite-gallery-photo invite-gallery-photo-b invite-reveal" style={{ backgroundImage: `url(${altOne})` }} />
+        <div className="invite-gallery-photo invite-gallery-photo-c invite-reveal" style={{ backgroundImage: `url(${altTwo})` }} />
+      </div>
+      <div className="invite-gallery-panel invite-reveal">
+        <p>Wedding day</p>
+        <h1>{model.data.groomName || "Kuyov"}<span>&</span>{model.data.brideName || "Kelin"}</h1>
+        <small>{model.data.hostText}</small>
+        <a href={getMapHref(model)} target="_blank" rel="noopener noreferrer">
+          {model.time} · {model.data.venueName || "To'yxona"}
+        </a>
+      </div>
     </Frame>
   );
 }
@@ -281,24 +420,24 @@ function RoseLayout({ model }: { model: PreviewModel }) {
 function MinimalLayout({ model }: { model: PreviewModel }) {
   return (
     <Frame className="invite-layout-minimal rounded-xl p-0 text-left">
-      <div className="invite-minimal-grid">
-        <div className="invite-minimal-date invite-reveal">
-          <span>{model.day}</span>
-          <b>{model.monthYear}</b>
+      <div className="invite-minimal-grid invite-premium-font">
+        <div className="invite-minimal-top invite-reveal">
+          <span>Save the date</span>
+          <b>{model.formattedDate}</b>
         </div>
         <div className="invite-minimal-copy">
-          <p className="invite-reveal text-[10px] font-bold uppercase tracking-[0.38em] text-[var(--invite-accent)]">Modern vow</p>
-          <h1 className="invite-reveal mt-8 text-6xl font-semibold leading-[0.88] tracking-normal">
+          <p className="invite-reveal text-[10px] font-bold uppercase tracking-[0.38em] text-[var(--invite-muted)]">Modern vow</p>
+          <h1 className="invite-reveal">
             {model.data.groomName || "Kuyov"}
-            <span className="block pl-12 text-[var(--invite-accent)]">+</span>
+            <span>and</span>
             {model.data.brideName || "Kelin"}
           </h1>
-          <p className="invite-reveal mt-8 text-sm leading-7 text-[var(--invite-muted)]">{model.data.hostText}</p>
+          <p className="invite-reveal">{model.data.hostText}</p>
         </div>
         <div className="invite-minimal-meta invite-reveal">
           <Meta label="Vaqt" value={model.time} />
           <Meta label="Joy" value={model.data.venueName || "To'yxona"} />
-          <Meta label="Manzil" value={model.data.venueAddress || "Manzil"} />
+        <MapMeta label="Manzil" model={model} value={model.data.venueAddress || "Manzil"} />
         </div>
       </div>
     </Frame>
@@ -307,15 +446,13 @@ function MinimalLayout({ model }: { model: PreviewModel }) {
 
 function RoyalLayout({ model }: { model: PreviewModel }) {
   return (
-    <Frame className="invite-layout-royal rounded-t-[6rem] rounded-b-[1.25rem] px-7 py-9 text-center sm:px-10">
+    <Frame className="invite-layout-royal rounded-[1.4rem] px-7 py-9 text-center sm:px-10">
       <div className="invite-royal-gate" />
-      <Seal icon="sparkles" />
-      <p className="invite-reveal mt-8 text-[11px] font-bold uppercase tracking-[0.32em] text-[var(--invite-accent)]">
-        Royal nikoh majlisi
-      </p>
-      <h1 className="invite-reveal mt-7 font-serif text-5xl font-bold uppercase leading-[0.96] tracking-[0.13em]">
+      <div className="invite-royal-crest invite-reveal"><Sparkles className="h-5 w-5" /></div>
+      <p className="invite-reveal invite-royal-eyebrow">Royal nikoh majlisi</p>
+      <h1 className="invite-reveal invite-royal-title">
         {model.data.groomName || "Kuyov"}
-        <span className="block wedding-script py-2 text-5xl font-normal normal-case tracking-normal text-[var(--invite-accent)]">
+        <span>
           bilan
         </span>
         {model.data.brideName || "Kelin"}
@@ -328,7 +465,7 @@ function RoyalLayout({ model }: { model: PreviewModel }) {
       </div>
       <HostText text={model.data.hostText} />
       <VenueBox model={model} />
-      <LocationButton />
+      <LocationButton model={model} />
     </Frame>
   );
 }
@@ -338,10 +475,10 @@ function NoorLayout({ model }: { model: PreviewModel }) {
     <Frame className="invite-layout-noor rounded-[1.35rem] px-6 py-8 text-center">
       <div className="invite-noor-dome invite-reveal">
         <div className="invite-noor-lamp"><Sparkles className="h-6 w-6" /></div>
-        <p className="mt-5 text-3xl leading-none" dir="rtl">وَخَلَقْنَاكُمْ أَزْوَاجًا</p>
-        <p className="mt-3 text-xs uppercase tracking-[0.3em] text-[var(--invite-muted)]">Bismillahir rohmanir rohiym</p>
+        <p className="invite-noor-arabic" dir="rtl">وَخَلَقْنَاكُمْ أَزْوَاجًا</p>
+        <p className="invite-noor-sub">Bismillahir rohmanir rohiym</p>
       </div>
-      <h1 className="invite-reveal wedding-script mt-7 text-6xl leading-none">{model.names}</h1>
+      <h1 className="invite-reveal invite-noor-title">{model.names}</h1>
       <div className="invite-noor-date invite-reveal">
         <span>{model.weekday}</span>
         <b>{model.day}</b>
@@ -350,7 +487,7 @@ function NoorLayout({ model }: { model: PreviewModel }) {
       <p className="invite-reveal mx-auto mt-7 max-w-xs text-sm leading-7 text-[var(--invite-muted)]">{model.data.hostText}</p>
       <div className="invite-reveal mt-7 grid gap-3 text-left">
         <Pill icon={<Clock className="h-4 w-4" />} text={model.time} />
-        <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} />
+        <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} href={getMapHref(model)} />
       </div>
     </Frame>
   );
@@ -373,7 +510,7 @@ function PearlLayout({ model }: { model: PreviewModel }) {
         <HostText text={model.data.hostText} />
         <div className="invite-reveal mt-6 grid gap-3 text-left">
           <Pill icon={<Clock className="h-4 w-4" />} text={model.time} />
-          <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} />
+          <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} href={getMapHref(model)} />
         </div>
       </div>
     </Frame>
@@ -384,10 +521,10 @@ function MidnightLayout({ model }: { model: PreviewModel }) {
   return (
     <Frame className="invite-layout-midnight rounded-[1.75rem] px-7 py-8 text-left">
       <div className="invite-moon invite-reveal" />
-      <p className="invite-reveal text-xs font-semibold uppercase tracking-[0.32em] text-[var(--invite-accent)]">Midnight ceremony</p>
-      <h1 className="invite-reveal mt-8 max-w-sm font-serif text-6xl uppercase leading-none tracking-normal">
+      <p className="invite-reveal invite-midnight-label">Midnight ceremony</p>
+      <h1 className="invite-reveal invite-midnight-title">
         {model.data.groomName || "Kuyov"}
-        <span className="block pl-16 text-[var(--invite-accent)]">&</span>
+        <span>&</span>
         {model.data.brideName || "Kelin"}
       </h1>
       <div className="invite-starry-strip invite-reveal">
@@ -399,9 +536,9 @@ function MidnightLayout({ model }: { model: PreviewModel }) {
         {model.data.hostText}
       </p>
       <div className="invite-reveal mt-7 grid gap-3">
-        <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} />
+        <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} href={getMapHref(model)} />
       </div>
-      <LocationButton />
+      <LocationButton model={model} />
     </Frame>
   );
 }
@@ -414,15 +551,15 @@ function GardenLayout({ model }: { model: PreviewModel }) {
           <span>{model.day}</span>
         </div>
       </div>
-      <p className="invite-reveal mt-5 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--invite-accent)]">Garden bloom</p>
-      <h1 className="invite-reveal wedding-script mt-3 text-6xl leading-none">{model.names}</h1>
+      <p className="invite-reveal invite-garden-label">Garden bloom</p>
+      <h1 className="invite-reveal invite-garden-title">{model.names}</h1>
       <Quote text="Baxtli kunimizga guldek niyatlar bilan tashrif buyuring." />
       <p className="invite-reveal mx-auto mt-5 max-w-xs text-sm leading-7 text-[var(--invite-muted)]">{model.data.hostText}</p>
       <div className="invite-reveal mt-6 grid grid-cols-2 gap-3 text-left">
         <GardenTile label="Sana" value={model.formattedDate} />
         <GardenTile label="Vaqt" value={model.time} />
         <GardenTile label="To'yxona" value={model.data.venueName || "To'yxona"} wide />
-        <GardenTile label="Manzil" value={model.data.venueAddress || "Manzil"} wide />
+        <GardenTile label="Manzil" value={model.data.venueAddress || "Manzil"} wide href={getMapHref(model)} />
       </div>
     </Frame>
   );
@@ -436,9 +573,9 @@ function SilkLayout({ model }: { model: PreviewModel }) {
         <b>{model.day}</b>
       </div>
       <div className="px-8 pb-8 pt-7">
-        <h1 className="invite-reveal font-serif text-5xl leading-tight">
+        <h1 className="invite-reveal invite-silk-title">
           {model.data.groomName || "Kuyov"}
-          <span className="block wedding-script text-6xl text-[var(--invite-accent)]">meets</span>
+          <span>meets</span>
           {model.data.brideName || "Kelin"}
         </h1>
         <div className="invite-reveal mt-7 grid grid-cols-[1fr_104px] gap-5">
@@ -449,7 +586,7 @@ function SilkLayout({ model }: { model: PreviewModel }) {
           </div>
         </div>
         <div className="invite-reveal mt-7 border-t pt-6">
-          <Meta label="Venue" value={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} />
+          <MapMeta label="Venue" model={model} value={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} />
         </div>
       </div>
     </Frame>
@@ -461,7 +598,7 @@ function DesertLayout({ model }: { model: PreviewModel }) {
     <Frame className="invite-layout-desert rounded-[1.3rem] px-7 py-8 text-center">
       <div className="invite-scroll invite-reveal">
         <p className="text-xs uppercase tracking-[0.32em] text-[var(--invite-muted)]">Saffron dusk</p>
-        <h1 className="wedding-script mt-4 text-6xl leading-none">{model.names}</h1>
+        <h1 className="invite-desert-title">{model.names}</h1>
         <div className="invite-desert-ornament" />
         <p className="mt-6 text-sm leading-7 text-[var(--invite-muted)]">{model.data.hostText}</p>
       </div>
@@ -481,21 +618,24 @@ function OceanLayout({ model }: { model: PreviewModel }) {
       <div className="invite-wave-mark invite-reveal" />
       <div className="invite-glass-panel invite-reveal">
         <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[var(--invite-accent)]">Ocean glass</p>
-        <h1 className="wedding-script mt-5 text-6xl leading-none">{model.names}</h1>
+        <h1 className="invite-ocean-title">{model.names}</h1>
         <p className="mt-6 text-sm leading-7 text-[var(--invite-muted)]">{model.data.hostText}</p>
       </div>
       <div className="invite-reveal mt-5 grid gap-3 text-left">
         <Pill icon={<CalendarDays className="h-4 w-4" />} text={model.formattedDate} />
         <Pill icon={<Clock className="h-4 w-4" />} text={model.time} />
-        <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} />
+        <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} href={getMapHref(model)} />
       </div>
-      <LocationButton />
+      <LocationButton model={model} />
     </Frame>
   );
 }
 
 const layouts = {
   rose: RoseLayout,
+  blueInk: BlueInkLayout,
+  collage: CollageLayout,
+  gallery: GalleryLayout,
   minimal: MinimalLayout,
   royal: RoyalLayout,
   noor: NoorLayout,
@@ -522,7 +662,7 @@ function Frame({ children, className }: { children: ReactNode; className?: strin
 
 function Seal({ icon }: { icon: "heart" | "sparkles" }) {
   return (
-    <div className="invite-seal absolute left-1/2 top-0 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-lg">
+    <div className="invite-seal absolute left-1/2 top-[-14px] flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow-lg">
       {icon === "heart" ? (
         <Heart className="h-6 w-6 fill-[var(--invite-accent)] text-[var(--invite-accent)]" />
       ) : (
@@ -595,9 +735,19 @@ function HostText({ text }: { text: string }) {
   return <p className="invite-reveal mx-auto mt-7 max-w-xs text-sm leading-7 text-[var(--invite-muted)]">{text}</p>;
 }
 
+function getMapHref(model: PreviewModel) {
+  const query = [model.data.venueName, model.data.venueAddress].filter(Boolean).join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query || "Toshkent")}`;
+}
+
 function VenueBox({ model }: { model: PreviewModel }) {
   return (
-    <div className="invite-reveal mt-7 rounded-lg border bg-white/60 p-4 text-left backdrop-blur">
+    <a
+      className="invite-reveal mt-7 block rounded-lg border bg-white/60 p-4 text-left backdrop-blur transition hover:-translate-y-0.5 hover:border-[var(--invite-accent)] hover:bg-white/75"
+      href={getMapHref(model)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       <div className="flex gap-3">
         <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[var(--invite-accent)]" />
         <div>
@@ -606,7 +756,7 @@ function VenueBox({ model }: { model: PreviewModel }) {
           <p className="mt-1 text-sm text-[var(--invite-muted)]">{model.data.venueAddress || "Manzil"}</p>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -618,17 +768,20 @@ function Quote({ text }: { text: string }) {
   );
 }
 
-function LocationButton({ compact = false }: { compact?: boolean }) {
+function LocationButton({ model, compact = false }: { model: PreviewModel; compact?: boolean }) {
   return (
-    <div
+    <a
       className={cn(
-        "invite-reveal inline-flex items-center justify-center gap-2 rounded-full bg-[var(--invite-accent)] text-sm font-semibold text-white shadow-lg",
+        "invite-reveal inline-flex items-center justify-center gap-2 rounded-full bg-[var(--invite-accent)] text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl",
         compact ? "px-4 py-2" : "mt-5 px-5 py-3"
       )}
+      href={getMapHref(model)}
+      target="_blank"
+      rel="noopener noreferrer"
     >
       <MapPin className="h-4 w-4" />
       Manzil
-    </div>
+    </a>
   );
 }
 
@@ -650,18 +803,45 @@ function Meta({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Pill({ icon, text }: { icon: ReactNode; text: string }) {
+function MapMeta({ label, value, model }: { label: string; value: string; model: PreviewModel }) {
   return (
-    <div className="flex items-center gap-3 rounded-full border bg-white/55 px-4 py-3 text-sm font-semibold backdrop-blur">
+    <a href={getMapHref(model)} target="_blank" rel="noopener noreferrer" className="block rounded-md transition hover:text-[var(--invite-accent)]">
+      <Meta label={label} value={value} />
+    </a>
+  );
+}
+
+function Pill({ icon, text, href }: { icon: ReactNode; text: string; href?: string }) {
+  const className = "flex items-center gap-3 rounded-full border bg-white/55 px-4 py-3 text-sm font-semibold backdrop-blur transition hover:-translate-y-0.5 hover:border-[var(--invite-accent)] hover:bg-white/70";
+  if (href) {
+    return (
+      <a className={className} href={href} target="_blank" rel="noopener noreferrer">
+        <span className="text-[var(--invite-accent)]">{icon}</span>
+        <span>{text}</span>
+      </a>
+    );
+  }
+
+  return (
+    <div className={className}>
       <span className="text-[var(--invite-accent)]">{icon}</span>
       <span>{text}</span>
     </div>
   );
 }
 
-function GardenTile({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
+function GardenTile({ label, value, wide, href }: { label: string; value: string; wide?: boolean; href?: string }) {
+  const className = cn("rounded-lg border bg-white/60 p-4 transition hover:border-[var(--invite-accent)] hover:bg-white/75", wide && "col-span-2");
+  if (href) {
+    return (
+      <a className={className} href={href} target="_blank" rel="noopener noreferrer">
+        <Meta label={label} value={value} />
+      </a>
+    );
+  }
+
   return (
-    <div className={cn("rounded-lg border bg-white/60 p-4", wide && "col-span-2")}>
+    <div className={className}>
       <Meta label={label} value={value} />
     </div>
   );

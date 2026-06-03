@@ -140,6 +140,47 @@
   animation: invite-drift ease-in-out infinite;
 }
 
+.venue-map-marker {
+  position: relative;
+  width: 36px;
+  height: 46px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  transform-origin: 50% 100%;
+}
+
+.venue-map-marker__pin {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50% 50% 50% 0;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--marker-accent) 76%, white), var(--marker-accent));
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.94) inset,
+    0 8px 18px var(--marker-shadow);
+  display: grid;
+  place-items: center;
+  transform: translateX(-50%) rotate(-45deg);
+}
+
+.venue-map-marker__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.18);
+}
+
+.venue-map-marker:hover .venue-map-marker__pin {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.96) inset,
+    0 12px 22px var(--marker-shadow);
+}
+
 .floating-hearts .invite-particle {
   width: auto;
   height: auto;
@@ -208,6 +249,201 @@
 
 .invite-theme-ocean-glass .invite-card {
   backdrop-filter: blur(14px);
+}
+
+.invite-theme-photo-collage .invite-card {
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.invite-layout-collage {
+  color: white;
+  background:
+    linear-gradient(180deg, rgba(8, 12, 10, 0.08), rgba(8, 12, 10, 0.62)),
+    var(--invite-card);
+}
+
+.invite-layout-collage::before {
+  inset: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 1.15rem;
+}
+
+.invite-layout-collage::after {
+  display: none;
+}
+
+.invite-collage-shell {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 24px 24px 20px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.09), transparent 26%),
+    linear-gradient(180deg, rgba(8, 12, 10, 0.14), rgba(8, 12, 10, 0.68));
+}
+
+.invite-collage-top {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.invite-collage-eyebrow {
+  font-family: "Allura", cursive;
+  font-size: clamp(48px, 6vw, 84px);
+  line-height: 0.9;
+  text-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.invite-collage-title {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.invite-collage-canvas {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 0.95fr 1.5fr 0.95fr;
+  grid-template-rows: 1fr 0.44fr;
+  gap: 14px;
+  align-items: stretch;
+  padding: 14px 0 0;
+}
+
+.invite-collage-arch,
+.invite-collage-left,
+.invite-collage-right {
+  background-color: rgba(255, 255, 255, 0.08);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.82),
+    0 18px 40px rgba(0, 0, 0, 0.2);
+}
+
+.invite-collage-arch {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  border-radius: 47% 47% 12px 12px / 18% 18% 12px 12px;
+  clip-path: inset(0 round 47% 47% 12px 12px / 18% 18% 12px 12px);
+  background-position: center 32%;
+  transform: translateY(4px);
+}
+
+.invite-collage-left {
+  grid-column: 1;
+  grid-row: 2;
+  margin-top: 18px;
+  border-radius: 42% 42% 16px 16px / 32% 32% 12px 12px;
+  background-position: center 56%;
+}
+
+.invite-collage-right {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  margin-top: 34px;
+  border-radius: 42% 42% 16px 16px / 32% 32% 12px 12px;
+  background-position: center 54%;
+}
+
+.invite-collage-ring {
+  position: absolute;
+  left: 61%;
+  top: 54%;
+  width: 30%;
+  height: 62%;
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.invite-collage-ring::before,
+.invite-collage-ring::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translateY(-50%) rotate(45deg);
+  background: white;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+}
+
+.invite-collage-ring::before {
+  left: -4px;
+}
+
+.invite-collage-ring::after {
+  right: -4px;
+}
+
+.invite-collage-arch::before,
+.invite-collage-left::before,
+.invite-collage-right::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.invite-collage-arch::after,
+.invite-collage-left::after,
+.invite-collage-right::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 38%, rgba(0, 0, 0, 0.28));
+}
+
+.invite-collage-footer {
+  position: relative;
+  z-index: 2;
+  padding-top: 2px;
+  text-align: center;
+}
+
+.invite-collage-names {
+  font-family: "Allura", cursive;
+  font-size: clamp(36px, 5vw, 60px);
+  line-height: 0.95;
+  text-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+}
+
+.invite-collage-copy {
+  margin: 10px auto 0;
+  max-width: 50ch;
+  font-size: clamp(11px, 1.45vw, 13px);
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.collage-dust .invite-particle {
+  width: 2px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+}
+
+.blue-ink-sprigs .invite-particle {
+  width: 38px;
+  height: 1px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.22;
+  transform-origin: left center;
 }
 
 .invite-layout-minimal {
@@ -824,4 +1060,780 @@
   to {
     transform: translateY(34px);
   }
+}
+
+.invite-premium-font {
+  font-family: "Bodoni 72", "Didot", "Cormorant Garamond", Georgia, serif;
+}
+
+.invite-layout-collage {
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(235, 216, 190, 0.94)),
+    var(--invite-card);
+  color: var(--invite-ink);
+}
+
+.invite-theme-photo-collage .invite-card {
+  border-color: rgba(184, 137, 69, 0.3);
+}
+
+.invite-layout-collage::before {
+  inset: 18px;
+  border: 1px solid rgba(184, 137, 69, 0.35);
+  border-radius: 16px;
+}
+
+.invite-layout-collage::after {
+  display: none;
+}
+
+.invite-collage-shell {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
+  padding: 28px;
+  background: transparent;
+}
+
+.invite-collage-titleblock {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid rgba(184, 137, 69, 0.28);
+  padding-bottom: 14px;
+}
+
+.invite-collage-titleblock span {
+  max-width: 84px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.45;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-collage-titleblock h1 {
+  max-width: 290px;
+  text-align: right;
+  font-size: clamp(28px, 4.4vw, 46px);
+  line-height: 0.96;
+  color: var(--invite-ink);
+}
+
+.invite-collage-titleblock em {
+  color: var(--invite-accent);
+  font-style: italic;
+}
+
+.invite-collage-board {
+  position: relative;
+  min-height: 0;
+}
+
+.invite-collage-photo {
+  position: absolute;
+  background-position: center;
+  background-size: cover;
+  box-shadow:
+    0 0 0 10px #fffaf1,
+    0 22px 44px rgba(79, 49, 21, 0.22);
+}
+
+.invite-collage-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 58%, rgba(28, 20, 12, 0.28));
+}
+
+.invite-collage-photo-main {
+  left: 24%;
+  top: 2%;
+  width: 52%;
+  height: 88%;
+  border-radius: 999px 999px 18px 18px;
+  z-index: 2;
+}
+
+.invite-collage-photo-left {
+  left: 0;
+  bottom: 7%;
+  width: 36%;
+  height: 46%;
+  border-radius: 18px;
+  transform: rotate(-4deg);
+  z-index: 3;
+}
+
+.invite-collage-photo-right {
+  right: 0;
+  top: 18%;
+  width: 34%;
+  height: 44%;
+  border-radius: 18px;
+  transform: rotate(4deg);
+  z-index: 1;
+}
+
+.invite-collage-date {
+  position: absolute;
+  right: 18px;
+  bottom: 26px;
+  z-index: 4;
+  min-width: 116px;
+  border: 1px solid rgba(184, 137, 69, 0.42);
+  background: rgba(255, 250, 242, 0.9);
+  padding: 12px 14px;
+  text-align: center;
+  box-shadow: 0 18px 36px rgba(79, 49, 21, 0.16);
+}
+
+.invite-collage-date b {
+  display: block;
+  font-size: 44px;
+  line-height: 0.9;
+  color: var(--invite-accent);
+}
+
+.invite-collage-date span,
+.invite-collage-detail span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-collage-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid rgba(184, 137, 69, 0.28);
+  padding-top: 14px;
+}
+
+.invite-collage-detail p {
+  max-width: 300px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--invite-ink);
+}
+
+.invite-layout-gallery {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.72), transparent 18%),
+    var(--invite-card);
+}
+
+.invite-layout-blue-ink {
+  background:
+    linear-gradient(90deg, rgba(47,111,186,.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(47,111,186,.045) 1px, transparent 1px),
+    var(--invite-card);
+  background-size: 28px 28px, 28px 28px, cover;
+}
+
+.invite-layout-blue-ink::before {
+  inset: 24px;
+  border: 1px solid rgba(18, 23, 34, 0.18);
+  border-radius: 0;
+}
+
+.invite-layout-blue-ink::after {
+  inset: 34px;
+  border: 1px solid rgba(47, 111, 186, 0.24);
+  background: transparent;
+  transform: none;
+  animation: none;
+}
+
+.invite-blue-ink-corner {
+  position: absolute;
+  width: 154px;
+  height: 154px;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.invite-blue-ink-corner::before,
+.invite-blue-ink-corner::after {
+  content: "";
+  position: absolute;
+  border-color: var(--invite-accent);
+  opacity: 0.82;
+}
+
+.invite-blue-ink-corner::before {
+  inset: 0;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.invite-blue-ink-corner::after {
+  width: 112px;
+  height: 112px;
+  border-radius: 999px 0 999px 0;
+  border: 1px solid;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(47,111,186,.16), transparent 10%),
+    radial-gradient(circle at 52% 42%, rgba(47,111,186,.12), transparent 12%);
+}
+
+.invite-blue-ink-corner-tl {
+  left: 28px;
+  top: 28px;
+}
+
+.invite-blue-ink-corner-tl::after {
+  left: 18px;
+  top: 24px;
+  transform: rotate(-16deg);
+}
+
+.invite-blue-ink-corner-br {
+  right: 28px;
+  bottom: 28px;
+  transform: rotate(180deg);
+}
+
+.invite-blue-ink-corner-br::after {
+  left: 18px;
+  top: 24px;
+  transform: rotate(-16deg);
+}
+
+.invite-blue-ink-monogram {
+  display: grid;
+  width: 82px;
+  height: 82px;
+  place-items: center;
+  margin: 42px auto 0;
+  border: 1px solid rgba(47, 111, 186, 0.42);
+  border-radius: 999px;
+  color: var(--invite-accent);
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 30px;
+  letter-spacing: 0.08em;
+  box-shadow: inset 0 0 0 8px rgba(47,111,186,.06);
+}
+
+.invite-blue-ink-label {
+  margin-top: 34px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-blue-ink-title {
+  margin: 34px auto 0;
+  max-width: 330px;
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 58px;
+  line-height: 0.9;
+  color: var(--invite-ink);
+}
+
+.invite-blue-ink-title span {
+  display: block;
+  margin: 10px 0;
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 54px;
+  font-weight: 400;
+  color: var(--invite-accent);
+}
+
+.invite-blue-ink-date {
+  display: grid;
+  grid-template-columns: 1fr 84px 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.invite-blue-ink-date span {
+  border-top: 1px solid rgba(47,111,186,.26);
+  border-bottom: 1px solid rgba(47,111,186,.26);
+  padding: 12px 0;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-blue-ink-date b {
+  display: grid;
+  width: 84px;
+  height: 84px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--invite-accent);
+  color: white;
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 44px;
+  box-shadow: 0 18px 34px rgba(47,111,186,.22);
+}
+
+.invite-blue-ink-copy {
+  margin: 36px auto 0;
+  max-width: 310px;
+  color: var(--invite-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.invite-blue-ink-info {
+  display: grid;
+  gap: 14px;
+  margin-top: 34px;
+  border-top: 1px solid rgba(47,111,186,.22);
+  padding-top: 22px;
+  text-align: left;
+}
+
+.invite-layout-gallery::before {
+  inset: 18px;
+  border: 1px solid rgba(159, 107, 50, 0.28);
+  border-radius: 1.2rem;
+}
+
+.invite-gallery-rail {
+  position: absolute;
+  left: 26px;
+  top: 28px;
+  bottom: 28px;
+  z-index: 3;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: 54px;
+  border-right: 1px solid rgba(159, 107, 50, 0.28);
+  padding-right: 14px;
+  text-align: center;
+}
+
+.invite-gallery-rail span {
+  writing-mode: vertical-rl;
+  justify-self: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-gallery-rail b {
+  align-self: center;
+  font-family: Georgia, serif;
+  font-size: 42px;
+  color: var(--invite-accent);
+}
+
+.invite-gallery-stack {
+  position: relative;
+  min-height: 392px;
+  margin-left: 80px;
+  padding: 28px 24px 0 0;
+}
+
+.invite-gallery-photo {
+  position: absolute;
+  background-position: center;
+  background-size: cover;
+  box-shadow:
+    0 0 0 8px #fffaf2,
+    0 20px 44px rgba(78, 49, 24, 0.18);
+}
+
+.invite-gallery-photo-a {
+  left: 36px;
+  top: 28px;
+  width: 58%;
+  height: 72%;
+  border-radius: 999px 999px 20px 20px;
+}
+
+.invite-gallery-photo-b {
+  right: 18px;
+  top: 76px;
+  width: 34%;
+  height: 48%;
+  border-radius: 18px;
+}
+
+.invite-gallery-photo-c {
+  left: 8px;
+  bottom: 26px;
+  width: 34%;
+  height: 34%;
+  border-radius: 18px;
+}
+
+.invite-gallery-panel {
+  position: relative;
+  margin: 0 28px 28px 92px;
+  border: 1px solid rgba(159, 107, 50, 0.22);
+  background: rgba(255, 250, 244, 0.74);
+  padding: 24px;
+  box-shadow: 0 18px 42px rgba(78, 49, 24, 0.12);
+}
+
+.invite-gallery-panel p {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-gallery-panel h1 {
+  margin-top: 10px;
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 42px;
+  line-height: 0.96;
+}
+
+.invite-gallery-panel h1 span {
+  display: block;
+  color: var(--invite-accent);
+  font-style: italic;
+}
+
+.invite-gallery-panel small {
+  display: block;
+  margin-top: 14px;
+  color: var(--invite-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.invite-gallery-panel a {
+  display: block;
+  margin-top: 14px;
+  border-top: 1px solid rgba(159, 107, 50, 0.22);
+  padding-top: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--invite-accent);
+  transition: color 180ms ease;
+}
+
+.invite-gallery-panel a:hover {
+  color: var(--invite-ink);
+}
+
+.invite-layout-minimal {
+  background:
+    linear-gradient(90deg, rgba(17, 17, 17, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17, 17, 17, 0.055) 1px, transparent 1px),
+    var(--invite-card);
+  background-size: 42px 42px, 42px 42px, cover;
+}
+
+.invite-layout-minimal::before {
+  inset: 24px;
+  border: 1px solid rgba(17, 17, 17, 0.16);
+  border-radius: 0;
+}
+
+.invite-minimal-grid {
+  min-height: 720px;
+  padding: 36px;
+}
+
+.invite-minimal-top {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--invite-accent);
+  padding-bottom: 18px;
+}
+
+.invite-minimal-top span,
+.invite-minimal-top b {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.invite-minimal-copy h1 {
+  margin-top: 72px;
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: clamp(62px, 10vw, 86px);
+  line-height: 0.85;
+}
+
+.invite-minimal-copy h1 span {
+  display: block;
+  margin: 16px 0;
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 56px;
+  font-weight: 400;
+  color: var(--invite-muted);
+}
+
+.invite-minimal-copy p:last-child {
+  margin-top: 34px;
+  max-width: 310px;
+  border-left: 3px solid var(--invite-accent);
+  padding-left: 18px;
+  color: var(--invite-muted);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.invite-minimal-meta {
+  margin-top: 52px;
+  border-left: 0;
+  border-top: 1px solid rgba(17, 17, 17, 0.18);
+  padding: 18px 0 0;
+}
+
+.invite-layout-royal {
+  background:
+    radial-gradient(circle at 50% 10%, rgba(215, 180, 106, 0.3), transparent 24%),
+    linear-gradient(180deg, #fff9ea, #eef6ef);
+}
+
+.invite-layout-royal::before {
+  inset: 20px;
+  border: 1px solid rgba(215, 180, 106, 0.56);
+  border-radius: 1rem;
+}
+
+.invite-layout-royal::after {
+  background:
+    linear-gradient(90deg, transparent, rgba(215, 180, 106, 0.2), transparent);
+}
+
+.invite-royal-gate {
+  inset: 38px 32px auto;
+  height: 330px;
+  border: 2px double rgba(215, 180, 106, 0.58);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+}
+
+.invite-royal-crest {
+  display: grid;
+  width: 74px;
+  height: 74px;
+  place-items: center;
+  margin: 0 auto;
+  border: 1px solid rgba(215, 180, 106, 0.7);
+  border-radius: 999px;
+  color: var(--invite-accent);
+  background: #fffaf0;
+  box-shadow: 0 18px 38px rgba(16, 38, 31, 0.12);
+}
+
+.invite-royal-eyebrow {
+  margin-top: 26px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--invite-accent);
+}
+
+.invite-royal-title {
+  margin-top: 26px;
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 50px;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.invite-royal-title span {
+  display: block;
+  padding: 12px 0;
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 48px;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--invite-accent);
+}
+
+.invite-layout-noor {
+  background:
+    radial-gradient(circle at 50% 0, rgba(255, 225, 150, 0.72), transparent 22%),
+    repeating-radial-gradient(circle at 50% 20%, transparent 0 16px, rgba(189, 129, 38, 0.08) 17px 18px),
+    var(--invite-card);
+}
+
+.invite-noor-dome {
+  border-radius: 999px 999px 22px 22px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(255, 238, 184, 0.58), transparent 32%),
+    linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,248,225,.48));
+}
+
+.invite-noor-arabic {
+  margin-top: 18px;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--invite-ink);
+}
+
+.invite-noor-sub {
+  margin-top: 12px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--invite-muted);
+}
+
+.invite-noor-title {
+  margin-top: 28px;
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 64px;
+  line-height: 0.98;
+  color: var(--invite-ink);
+}
+
+.invite-layout-midnight {
+  background:
+    radial-gradient(circle at 74% 14%, rgba(240, 195, 111, 0.22), transparent 16%),
+    linear-gradient(160deg, rgba(7, 12, 24, 0.99), rgba(20, 31, 52, 0.96));
+}
+
+.invite-midnight-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--invite-accent);
+}
+
+.invite-midnight-title {
+  margin-top: 58px;
+  max-width: 360px;
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 66px;
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+.invite-midnight-title span {
+  display: block;
+  margin: 12px 0 12px 86px;
+  color: var(--invite-accent);
+}
+
+.invite-layout-garden {
+  background:
+    radial-gradient(circle at 8% 12%, rgba(204, 132, 141, 0.2), transparent 18%),
+    radial-gradient(circle at 90% 22%, rgba(63, 123, 85, 0.18), transparent 18%),
+    var(--invite-card);
+}
+
+.invite-garden-canopy {
+  min-height: 220px;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(231, 170, 174, 0.44), transparent 15%),
+    radial-gradient(circle at 75% 24%, rgba(111, 150, 113, 0.32), transparent 16%),
+    linear-gradient(135deg, rgba(255, 253, 246, 0.76), rgba(232, 241, 229, 0.86));
+}
+
+.invite-garden-label {
+  margin-top: 24px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--invite-accent);
+}
+
+.invite-garden-title {
+  margin-top: 12px;
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 62px;
+  line-height: 0.98;
+}
+
+.invite-layout-silk {
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.82), transparent 35%),
+    linear-gradient(142deg, rgba(138, 97, 127, 0.12), transparent 56%),
+    var(--invite-card);
+}
+
+.invite-silk-cover {
+  min-height: 260px;
+  background:
+    linear-gradient(135deg, rgba(43, 34, 48, 0.12), rgba(43, 34, 48, 0.46)),
+    radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.34), transparent 22%),
+    linear-gradient(135deg, #8a617f, #d8c0d6 62%, #f4e9f0);
+}
+
+.invite-silk-title {
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 50px;
+  line-height: 1.02;
+}
+
+.invite-silk-title span {
+  display: block;
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 64px;
+  color: var(--invite-accent);
+}
+
+.invite-layout-desert {
+  background:
+    radial-gradient(circle at 14% 10%, rgba(200, 107, 47, 0.18), transparent 18%),
+    linear-gradient(180deg, rgba(255, 248, 238, 0.95), rgba(244, 220, 197, 0.88));
+}
+
+.invite-layout-desert::before {
+  border-color: rgba(200, 107, 47, 0.34);
+  border-left-width: 2px;
+  border-right-width: 2px;
+}
+
+.invite-scroll {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 18px, rgba(200, 107, 47, 0.055) 19px 20px),
+    rgba(255, 250, 242, 0.66);
+}
+
+.invite-desert-title {
+  margin-top: 18px;
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 54px;
+  line-height: 0.98;
+  color: var(--invite-ink);
+}
+
+.invite-layout-ocean {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255,255,255,.76), transparent 18%),
+    linear-gradient(145deg, rgba(255,255,255,.52), rgba(204,236,238,.28));
+  backdrop-filter: blur(18px);
+}
+
+.invite-wave-mark {
+  background:
+    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.82), transparent 16%),
+    repeating-radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.3) 0 4px, transparent 5px 18px),
+    linear-gradient(135deg, rgba(22, 124, 137, 0.34), rgba(223, 244, 245, 0.58));
+}
+
+.invite-ocean-title {
+  margin-top: 22px;
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 64px;
+  line-height: 0.98;
+  color: var(--invite-ink);
 }

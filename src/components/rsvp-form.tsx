@@ -61,11 +61,11 @@ export function RsvpForm({ slug }: { slug: string }) {
           <div className="grid grid-cols-2 gap-2">
             <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm">
               <input type="radio" value="attending" {...form.register("status")} />
-              Kelaman
+              Boraman
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm">
               <input type="radio" value="not_attending" {...form.register("status")} />
-              Kela olmayman
+              Bora olmayman
             </label>
           </div>
 

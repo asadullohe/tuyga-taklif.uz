@@ -8,12 +8,14 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { InvitationPreview } from "@/components/invitation-preview";
+import { VenuePicker } from "@/components/venue-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { defaultWeddingData } from "@/lib/templates";
+import { findVenueOption } from "@/lib/venues";
 import { weddingFormSchema, type WeddingFormInput } from "@/lib/validations";
 import type { InvitationTemplate } from "@/types";
 
@@ -30,6 +32,7 @@ export function NewInvitationClient({ templates }: { templates: InvitationTempla
     defaultValues: defaultWeddingData
   });
   const previewData = form.watch();
+  const selectedVenue = findVenueOption(previewData.venueName, previewData.venueAddress);
 
   const mutation = useMutation({
     mutationFn: async (values: WeddingFormInput) => {
@@ -103,21 +106,26 @@ export function NewInvitationClient({ templates }: { templates: InvitationTempla
                 <Field label="Sana" error={form.formState.errors.eventDate?.message}>
                   <Input type="date" {...form.register("eventDate")} />
                 </Field>
-                <Field label="Vaqt" error={form.formState.errors.eventTime?.message}>
-                  <Input type="time" {...form.register("eventTime")} />
-                </Field>
-                <Field label="To'yxona" error={form.formState.errors.venueName?.message}>
-                  <Input {...form.register("venueName")} />
-                </Field>
-                <Field label="Rasm URL" error={form.formState.errors.coverImageUrl?.message}>
-                  <Input {...form.register("coverImageUrl")} />
-                </Field>
-                <Field label="Manzil" className="md:col-span-2" error={form.formState.errors.venueAddress?.message}>
-                  <Textarea {...form.register("venueAddress")} />
-                </Field>
-                <Field label="Taklif matni" className="md:col-span-2" error={form.formState.errors.hostText?.message}>
-                  <Textarea {...form.register("hostText")} />
-                </Field>
+              <Field label="Vaqt" error={form.formState.errors.eventTime?.message}>
+                <Input type="time" {...form.register("eventTime")} />
+              </Field>
+              <Field label="Rasm URL" error={form.formState.errors.coverImageUrl?.message}>
+                <Input {...form.register("coverImageUrl")} />
+              </Field>
+              <VenuePicker
+                selectedId={selectedVenue?.id}
+                onSelect={(venue) => {
+                  form.setValue("venueName", venue.name, { shouldDirty: true, shouldValidate: true });
+                  form.setValue("venueAddress", venue.address, { shouldDirty: true, shouldValidate: true });
+                }}
+              />
+              <div className="md:col-span-2 rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+                Tanlangan manzil: <span className="font-semibold text-foreground">{previewData.venueName}</span> ·{" "}
+                {previewData.venueAddress}
+              </div>
+              <Field label="Taklif matni" className="md:col-span-2" error={form.formState.errors.hostText?.message}>
+                <Textarea {...form.register("hostText")} />
+              </Field>
                 {mutation.isError ? <p className="text-sm text-destructive md:col-span-2">Saqlashda xatolik.</p> : null}
               </form>
             </CardContent>

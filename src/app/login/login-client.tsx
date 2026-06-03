@@ -112,7 +112,7 @@ export function LoginClient({
     const timeout = window.setTimeout(() => {
       if (!widgetRef.current?.querySelector("iframe")) {
         setWidgetStatus("error");
-        setError("Telegram widget chiqmasa, BotFather Web Login uchun shu domenni ruxsat qiling.");
+        setError("Telegram widget yuklanmadi.");
       }
     }, 5000);
 
@@ -121,10 +121,7 @@ export function LoginClient({
 
   async function loginWithMiniApp() {
     const initData = window.Telegram?.WebApp?.initData;
-    if (!initData) {
-      setError("Telegram Mini App initData topilmadi. Sahifani Telegram ichida oching.");
-      return;
-    }
+    if (!initData) return;
     window.Telegram?.WebApp?.ready?.();
     await completeLogin("/api/auth/telegram/mini-app", { initData });
   }
@@ -176,28 +173,15 @@ export function LoginClient({
           </div>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full justify-between"
-          onClick={loginWithMiniApp}
-          disabled={!hasMiniAppInitData}
-        >
-          <span className="inline-flex items-center gap-2">
-            <Bot className="h-4 w-4" />
-            {hasMiniAppInitData ? "Telegram Mini App orqali kirish" : "Mini App faqat Telegram ichida"}
-          </span>
-          <ExternalLink className="h-4 w-4" />
-        </Button>
-
-        <div className="rounded-md border bg-amber-50/70 p-3 text-sm leading-6 text-amber-900">
-          <Bot className="h-4 w-4" />
-          <p className="mt-2">
-            Agar web widget chiqmasa, BotFather’da <span className="font-semibold">Web Login / Allowed URLs</span> ga{" "}
-            <span className="font-semibold">{authOrigin || origin || "shu domen"}</span> qo‘shing. Netlify branch
-            domainlari Telegram’da alohida domen hisoblanadi.
-          </p>
-        </div>
+        {hasMiniAppInitData ? (
+          <Button type="button" variant="outline" className="w-full justify-between" onClick={loginWithMiniApp}>
+            <span className="inline-flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              Telegram Mini App orqali kirish
+            </span>
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        ) : null}
 
         {process.env.NODE_ENV !== "production" ? (
           <Button type="button" variant="secondary" className="w-full" onClick={() => completeLogin("/api/auth/dev")}>

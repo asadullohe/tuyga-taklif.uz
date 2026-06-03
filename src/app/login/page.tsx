@@ -22,10 +22,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
             <h1 className="mt-5 max-w-xl text-5xl font-semibold leading-[1.03] tracking-normal text-slate-950">
               Taklifnoma kabinetiga xavfsiz kirish.
             </h1>
-            <p className="mt-5 max-w-lg text-base leading-8 text-slate-600">
-              Web Login uchun bot domeni BotFather’da ruxsat qilinadi. Telegram ichida ochilganda Mini App initData
-              orqali sessiya avtomatik tasdiqlanadi.
-            </p>
           </section>
           <LoginClient appUrl={appUrl} botUsername={botUsername} initialError={error} />
         </div>

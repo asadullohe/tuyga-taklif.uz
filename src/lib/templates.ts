@@ -32,15 +32,18 @@ export const defaultWeddingData: WeddingFormData = {
 
 export const seedTemplates: InvitationTemplate[] = [
   ["classic-rose", "Classic Rose", "Foto fon, markaziy romantik card va floating heart entrance."],
-  ["modern-minimal", "Modern Minimal", "Asimmetrik editorial layout, grid chiziqlar va ultra toza tipografiya."],
-  ["royal-emerald", "Royal Emerald", "Saroy arch kompozitsiyasi, oltin gate ramka va royal seal."],
-  ["golden-noor", "Golden Noor", "Mihrab shakli, nur rays animatsiyasi va arabesque rhythm."],
+  ["blue-ink-a4", "Blue Ink A4", "Black, blue and white illustrated A4-style wedding invitation with ink florals."],
+  ["photo-collage", "Photo Collage", "Canva-style editorial photo mosaic, ivory margin, gold date ribbon."],
+  ["gallery-collage", "Gallery Collage", "Premium multi-photo gallery invite, overlapped frames va letterpress detail panel."],
+  ["modern-minimal", "Modern Minimal", "Black-ivory editorial invitation, katta serif names va disciplined spacing."],
+  ["royal-emerald", "Royal Emerald", "Deep emerald gatefold, gold foil border va ceremony crest."],
+  ["golden-noor", "Golden Noor", "Ivory mihrab, luminous noor rays, refined arabesque gold details."],
   ["pearl-blush", "Pearl Blush", "Pearl photo-window, yumshoq luxury panel va capsule date."],
-  ["midnight-starry", "Midnight Starry", "Dark poster layout, starfield motion va dramatik date orbit."],
-  ["garden-bloom", "Garden Bloom", "Flower ring, leaf drift, bog'cha tile kompozitsiyasi."],
-  ["silk-lilac", "Silk Lilac", "Magazine editorial flow, silk texture va diagonal story block."],
-  ["desert-saffron", "Desert Saffron", "Scroll parchment markazi, sand-line motion va sharqona date marks."],
-  ["ocean-glass", "Ocean Glass", "Glassmorphism panel, shimmer motion va pill-shaped info rows."]
+  ["midnight-starry", "Midnight Starry", "Noir-gold night invite, constellation frame va cinematic date plate."],
+  ["garden-bloom", "Garden Bloom", "Botanical stationery look, pressed florals va soft sage letterpress."],
+  ["silk-lilac", "Silk Lilac", "Luxury silk editorial, diagonal textile block va refined lilac typography."],
+  ["desert-saffron", "Desert Saffron", "Terracotta luxe card, geometric border va saffron ink ceremony panel."],
+  ["ocean-glass", "Ocean Glass", "Sea-glass invitation, translucent layers va pearl-blue shimmer."]
 ].map(([id, name, description]) => ({
   id,
   name,
