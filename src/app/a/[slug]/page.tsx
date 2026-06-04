@@ -4,6 +4,7 @@ import Link from "next/link";
 import { InvitationPreview } from "@/components/invitation-preview";
 import { QrCodeCard } from "@/components/qr-code-card";
 import { RsvpForm } from "@/components/rsvp-form";
+import { RsvpGuestBoard } from "@/components/rsvp-guest-board";
 import { ShareButton } from "@/components/share-button";
 import { getInvitationBySlug, trackEvent } from "@/lib/db";
 import { appUrl } from "@/lib/utils";
@@ -54,6 +55,7 @@ export default async function PublicInvitationPage({ params }: PageProps) {
         </section>
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           <RsvpForm slug={slug} />
+          <RsvpGuestBoard slug={slug} />
           <QrCodeCard value={publicUrl} />
           <ShareButton slug={slug} url={publicUrl} />
           <p className="text-center text-xs text-muted-foreground">

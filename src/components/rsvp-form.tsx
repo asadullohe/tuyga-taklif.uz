@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { rsvpSchema, type RsvpInput } from "@/lib/validations";
 
 export function RsvpForm({ slug }: { slug: string }) {
+  const queryClient = useQueryClient();
   const form = useForm<RsvpInput>({
     resolver: zodResolver(rsvpSchema),
     defaultValues: {
@@ -29,6 +30,9 @@ export function RsvpForm({ slug }: { slug: string }) {
       });
       if (!response.ok) throw new Error("RSVP yuborilmadi");
       return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["public-rsvps", slug] });
     }
   });
 

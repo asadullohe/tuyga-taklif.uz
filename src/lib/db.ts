@@ -389,6 +389,23 @@ export async function createRsvp(invitationId: string, input: Omit<Rsvp, "id" | 
   return rsvp;
 }
 
+export async function listRsvpsForInvitation(invitationId: string) {
+  const supabase = supabaseOrNull();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("rsvps")
+      .select("*")
+      .eq("invitation_id", invitationId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data.map(rsvpFromRow);
+  }
+
+  return memory.rsvps
+    .filter((rsvp) => rsvp.invitationId === invitationId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export async function trackEvent(
   invitationId: string,
   eventType: AnalyticsEventType,
