@@ -334,6 +334,26 @@ export async function updateInvitation(invitationId: string, userId: string, for
   return invitation;
 }
 
+export async function deleteInvitation(invitationId: string, userId: string) {
+  const supabase = supabaseOrNull();
+  if (supabase) {
+    const { error, count } = await supabase
+      .from("invitations")
+      .delete({ count: "exact" })
+      .eq("id", invitationId)
+      .eq("user_id", userId);
+    if (error) throw error;
+    return Boolean(count);
+  }
+
+  const index = memory.invitations.findIndex((item) => item.id === invitationId && item.userId === userId);
+  if (index === -1) return false;
+
+  memory.invitations.splice(index, 1);
+  memory.rsvps = memory.rsvps.filter((rsvp) => rsvp.invitationId !== invitationId);
+  return true;
+}
+
 export async function publishInvitation(invitationId: string, userId: string) {
   const invitation = await getInvitationForUser(invitationId, userId);
   if (!invitation) return null;

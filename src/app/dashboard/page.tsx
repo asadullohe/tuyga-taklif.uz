@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { InvitationDeleteButton } from "@/components/invitation-delete-button";
 import { listUserInvitations } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 import { cn, formatDateTime } from "@/lib/utils";
@@ -173,6 +174,7 @@ function StatTile({ label, value }: { label: string; value: number }) {
 function InvitationRow({ invitation }: { invitation: Invitation }) {
   const isPublished = invitation.status === "published";
   const formattedDate = formatDateTime(invitation.formData.eventDate, invitation.formData.eventTime);
+  const title = `${invitation.formData.groomName} va ${invitation.formData.brideName}`;
 
   return (
     <Card className="group overflow-hidden border-emerald-950/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -183,7 +185,7 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
             <span className="text-xs font-medium text-slate-500">{invitation.template?.name ?? "Template"}</span>
           </div>
           <h3 className="mt-3 text-2xl font-semibold tracking-normal text-slate-950">
-            {invitation.formData.groomName} va {invitation.formData.brideName}
+            {title}
           </h3>
           <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-2">
             <div className="flex min-w-0 items-center gap-2">
@@ -212,6 +214,7 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
               Tahrirlash
             </Link>
           </Button>
+          <InvitationDeleteButton invitationId={invitation.id} title={title} />
         </div>
       </CardContent>
     </Card>

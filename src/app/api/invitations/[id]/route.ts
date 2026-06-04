@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getInvitationForUser, updateInvitation } from "@/lib/db";
+import { deleteInvitation, getInvitationForUser, updateInvitation } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { updateInvitationSchema } from "@/lib/validations";
 
@@ -16,6 +16,17 @@ export async function GET(_request: Request, { params }: Params) {
   if (!invitation) return NextResponse.json({ message: "Invitation not found" }, { status: 404 });
 
   return NextResponse.json({ invitation });
+}
+
+export async function DELETE(_request: Request, { params }: Params) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const deleted = await deleteInvitation(id, user.id);
+  if (!deleted) return NextResponse.json({ message: "Invitation not found" }, { status: 404 });
+
+  return NextResponse.json({ ok: true });
 }
 
 export async function PATCH(request: Request, { params }: Params) {

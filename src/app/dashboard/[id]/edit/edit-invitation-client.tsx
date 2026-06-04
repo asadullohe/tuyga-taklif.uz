@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Rocket, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { InvitationDeleteButton } from "@/components/invitation-delete-button";
 import { InvitationPreview } from "@/components/invitation-preview";
 import { VenuePicker } from "@/components/venue-picker";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ export function EditInvitationClient({ invitation }: { invitation: Invitation })
   });
 
   const publicUrl = invitation.slug ? `${appUrl()}/a/${invitation.slug}` : null;
+  const title = `${invitation.formData.groomName} va ${invitation.formData.brideName}`;
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6">
@@ -88,6 +90,7 @@ export function EditInvitationClient({ invitation }: { invitation: Invitation })
             <Rocket className="h-4 w-4" />
             Publish
           </Button>
+          <InvitationDeleteButton invitationId={invitation.id} title={title} redirectTo="/dashboard" />
         </div>
       </div>
 
