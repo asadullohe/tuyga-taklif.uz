@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2 } from "lucide-react";
+import { Bell, CheckCircle2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,14 +12,19 @@ import { rsvpSchema, type RsvpInput } from "@/lib/validations";
 
 export function RsvpForm({ slug }: { slug: string }) {
   const queryClient = useQueryClient();
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
   const form = useForm<RsvpInput>({
     resolver: zodResolver(rsvpSchema),
     defaultValues: {
       guestName: "",
       status: "attending",
-      guestCount: 1
+      guestCount: 1,
+      reminderEnabled: false,
+      telegramChatId: ""
     }
   });
+  const status = form.watch("status");
+  const reminderEnabled = form.watch("reminderEnabled");
 
   const mutation = useMutation({
     mutationFn: async (values: RsvpInput) => {
@@ -77,6 +82,46 @@ export function RsvpForm({ slug }: { slug: string }) {
             <Label htmlFor="guestCount">Mehmon soni</Label>
             <Input id="guestCount" type="number" min={0} max={10} {...form.register("guestCount")} />
           </div>
+
+          {status === "attending" ? (
+            <div className="rounded-2xl border bg-muted/20 p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input className="mt-1" type="checkbox" {...form.register("reminderEnabled")} />
+                <span>
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    <Bell className="h-4 w-4 text-primary" />
+                    To'ydan oldin Telegram eslatma yuborilsinmi?
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                    Botga avval <b>/start</b> yuboring, keyin Telegram chat ID kiriting.
+                  </span>
+                </span>
+              </label>
+
+              {reminderEnabled ? (
+                <div className="mt-3 space-y-2">
+                  {botUsername ? (
+                    <a
+                      className="inline-flex text-xs font-semibold text-primary underline-offset-4 hover:underline"
+                      href={`https://t.me/${botUsername}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Botni ochish
+                    </a>
+                  ) : null}
+                  <Input {...form.register("telegramChatId")} placeholder="Telegram chat ID" />
+                  {form.formState.errors.telegramChatId ? (
+                    <p className="text-sm text-destructive">{form.formState.errors.telegramChatId.message}</p>
+                  ) : (
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Chat ID faqat eslatma yuborish uchun saqlanadi.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <Button type="submit" className="w-full" disabled={mutation.isPending}>
             {mutation.isPending ? "Yuborilmoqda..." : "Javob yuborish"}

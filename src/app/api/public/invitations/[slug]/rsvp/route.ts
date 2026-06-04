@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { createRsvp, getInvitationBySlug, listRsvpsForInvitation, trackEvent } from "@/lib/db";
+import { createRsvp, getInvitationBySlug, getUserById, listRsvpsForInvitation, trackEvent } from "@/lib/db";
+import { appUrl } from "@/lib/utils";
+import { sendTelegramMessage } from "@/lib/telegram";
 import { rsvpSchema } from "@/lib/validations";
 
 type Params = {
@@ -38,9 +40,51 @@ export async function POST(request: Request, { params }: Params) {
   const rsvp = await createRsvp(invitation.id, {
     guestName: input.guestName,
     status: input.status,
-    guestCount: input.status === "attending" ? input.guestCount : 0
+    guestCount: input.status === "attending" ? input.guestCount : 0,
+    reminderEnabled: input.status === "attending" ? input.reminderEnabled : false,
+    telegramChatId: input.status === "attending" && input.reminderEnabled ? input.telegramChatId : null
   });
   await trackEvent(invitation.id, "rsvp_submitted", { rsvpId: rsvp.id });
 
+  if (rsvp.reminderEnabled && rsvp.telegramChatId) {
+    const message = [
+      "🔔 <b>Eslatma yoqildi</b>",
+      "",
+      `${escapeTelegramHtml(invitation.formData.groomName)} va ${escapeTelegramHtml(invitation.formData.brideName)} to'yiga 24 soat qolganda eslatma yuboramiz.`,
+      `<b>Manzil:</b> ${escapeTelegramHtml(invitation.formData.venueName)}`
+    ].join("\n");
+
+    sendTelegramMessage(rsvp.telegramChatId, message).catch((error) => {
+      console.error("[rsvp-reminder-test]", error instanceof Error ? error.message : error);
+    });
+  }
+
+  if (rsvp.status === "attending") {
+    const owner = await getUserById(invitation.userId);
+    if (owner?.telegramId) {
+      const invitationUrl = invitation.slug ? `${appUrl()}/a/${invitation.slug}` : appUrl();
+      const message = [
+        "✅ <b>Yangi RSVP: kelaman</b>",
+        "",
+        `<b>Mehmon:</b> ${escapeTelegramHtml(rsvp.guestName)}`,
+        `<b>Soni:</b> ${rsvp.guestCount}`,
+        `<b>Taklifnoma:</b> ${escapeTelegramHtml(invitation.formData.groomName)} va ${escapeTelegramHtml(invitation.formData.brideName)}`,
+        "",
+        invitationUrl
+      ].join("\n");
+
+      sendTelegramMessage(owner.telegramId, message).catch((error) => {
+        console.error("[rsvp-telegram-notify]", error instanceof Error ? error.message : error);
+      });
+    }
+  }
+
   return NextResponse.json({ rsvp }, { status: 201 });
+}
+
+function escapeTelegramHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, UserCheck, UserX, Users } from "lucide-react";
+import { Bell, Search, UserCheck, UserX, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -133,6 +133,11 @@ function RsvpRow({ rsvp }: { rsvp: Rsvp }) {
         <p className="mt-1 text-xs text-muted-foreground">{new Date(rsvp.createdAt).toLocaleString("uz-Latn-UZ")}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        {rsvp.reminderEnabled ? (
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-sky-100 text-sky-700" title="Eslatma yoqilgan">
+            <Bell className="h-3.5 w-3.5" />
+          </span>
+        ) : null}
         {attending ? <Badge className="bg-emerald-100 text-emerald-800">Kelaman</Badge> : <Badge className="bg-rose-100 text-rose-800">Kelmayman</Badge>}
         {attending ? <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold">{rsvp.guestCount}</span> : null}
       </div>

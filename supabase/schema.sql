@@ -48,6 +48,9 @@ create table public.rsvps (
   guest_name text not null,
   status public.rsvp_status not null,
   guest_count integer not null default 0 check (guest_count >= 0 and guest_count <= 10),
+  reminder_enabled boolean not null default false,
+  telegram_chat_id text,
+  reminder_sent_at timestamptz,
   created_at timestamptz not null default now()
 );
 

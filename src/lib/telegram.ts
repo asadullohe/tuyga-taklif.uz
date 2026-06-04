@@ -44,6 +44,25 @@ function requireBotToken() {
   return token;
 }
 
+export async function sendTelegramMessage(chatId: string, text: string) {
+  const token = requireBotToken();
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+      disable_web_page_preview: true
+    })
+  });
+
+  if (!response.ok) {
+    const payload = await response.text();
+    throw new Error(`Telegram sendMessage failed: ${payload}`);
+  }
+}
+
 function timingSafeHexEqual(a: string, b: string) {
   if (!/^[a-f0-9]+$/i.test(a) || !/^[a-f0-9]+$/i.test(b)) return false;
 

@@ -130,6 +130,9 @@ function rsvpFromRow(row: Record<string, any>): Rsvp {
     guestName: row.guest_name,
     status: row.status,
     guestCount: row.guest_count,
+    reminderEnabled: row.reminder_enabled ?? false,
+    telegramChatId: row.telegram_chat_id ?? null,
+    reminderSentAt: row.reminder_sent_at ?? null,
     createdAt: row.created_at
   };
 }
@@ -369,7 +372,9 @@ export async function createRsvp(invitationId: string, input: Omit<Rsvp, "id" | 
         invitation_id: invitationId,
         guest_name: input.guestName,
         status: input.status,
-        guest_count: input.guestCount
+        guest_count: input.guestCount,
+        reminder_enabled: input.reminderEnabled,
+        telegram_chat_id: input.telegramChatId || null
       })
       .select("*")
       .single();
@@ -383,6 +388,9 @@ export async function createRsvp(invitationId: string, input: Omit<Rsvp, "id" | 
     guestName: input.guestName,
     status: input.status,
     guestCount: input.guestCount,
+    reminderEnabled: input.reminderEnabled,
+    telegramChatId: input.telegramChatId || null,
+    reminderSentAt: null,
     createdAt: now()
   };
   memory.rsvps.push(rsvp);
@@ -404,6 +412,72 @@ export async function listRsvpsForInvitation(invitationId: string) {
   return memory.rsvps
     .filter((rsvp) => rsvp.invitationId === invitationId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export type PendingRsvpReminder = {
+  rsvp: Rsvp;
+  invitation: Invitation;
+};
+
+function getInvitationDateTime(invitation: Invitation) {
+  const date = invitation.formData.eventDate;
+  const time = invitation.formData.eventTime || "00:00";
+  const timestamp = Date.parse(`${date}T${time}:00+05:00`);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function isReminderDue(invitation: Invitation, nowMs: number) {
+  const eventMs = getInvitationDateTime(invitation);
+  if (!eventMs) return false;
+  const reminderMs = eventMs - 24 * 60 * 60 * 1000;
+  return nowMs >= reminderMs && nowMs < eventMs;
+}
+
+export async function listPendingRsvpReminders(limit = 100): Promise<PendingRsvpReminder[]> {
+  const nowMs = Date.now();
+  const supabase = supabaseOrNull();
+
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("rsvps")
+      .select("*, invitations(*)")
+      .eq("status", "attending")
+      .eq("reminder_enabled", true)
+      .is("reminder_sent_at", null)
+      .not("telegram_chat_id", "is", null)
+      .limit(limit);
+    if (error) throw error;
+
+    return data
+      .map((row) => ({
+        rsvp: rsvpFromRow(row),
+        invitation: invitationFromRow(row.invitations)
+      }))
+      .filter((item) => item.invitation.status === "published" && isReminderDue(item.invitation, nowMs));
+  }
+
+  return memory.rsvps
+    .filter((rsvp) => rsvp.status === "attending" && rsvp.reminderEnabled && rsvp.telegramChatId && !rsvp.reminderSentAt)
+    .map((rsvp) => ({
+      rsvp,
+      invitation: memory.invitations.find((invitation) => invitation.id === rsvp.invitationId)
+    }))
+    .filter((item): item is PendingRsvpReminder => Boolean(item.invitation && item.invitation.status === "published" && isReminderDue(item.invitation, nowMs)))
+    .slice(0, limit);
+}
+
+export async function markRsvpReminderSent(rsvpId: string) {
+  const sentAt = now();
+  const supabase = supabaseOrNull();
+
+  if (supabase) {
+    const { error } = await supabase.from("rsvps").update({ reminder_sent_at: sentAt }).eq("id", rsvpId);
+    if (error) throw error;
+    return;
+  }
+
+  const rsvp = memory.rsvps.find((item) => item.id === rsvpId);
+  if (rsvp) rsvp.reminderSentAt = sentAt;
 }
 
 export async function trackEvent(

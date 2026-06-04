@@ -67,6 +67,9 @@ export type Rsvp = {
   guestName: string;
   status: RsvpStatus;
   guestCount: number;
+  reminderEnabled: boolean;
+  telegramChatId?: string | null;
+  reminderSentAt?: string | null;
   createdAt: string;
 };
 
