@@ -12,23 +12,12 @@ export const weddingFormSchema = z.object({
   musicUrl: z.string().url("Musiqa URL noto'g'ri").optional().or(z.literal(""))
 });
 
-export const rsvpSchema = z
-  .object({
-    guestName: z.string().min(2, "Ismingizni kiriting"),
-    status: z.enum(["attending", "not_attending"]),
-    guestCount: z.coerce.number().int().min(0).max(10),
-    reminderEnabled: z.boolean().default(false),
-    telegramChatId: z.string().trim().optional().or(z.literal(""))
-  })
-  .superRefine((value, ctx) => {
-    if (value.status === "attending" && value.reminderEnabled && !value.telegramChatId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["telegramChatId"],
-        message: "Eslatma uchun Telegram chat ID kiriting"
-      });
-    }
-  });
+export const rsvpSchema = z.object({
+  guestName: z.string().min(2, "Ismingizni kiriting"),
+  status: z.enum(["attending", "not_attending"]),
+  guestCount: z.coerce.number().int().min(0).max(10),
+  reminderEnabled: z.boolean().default(false)
+});
 
 export const createInvitationSchema = z.object({
   templateId: z.string().min(1),

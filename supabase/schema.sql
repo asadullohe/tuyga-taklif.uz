@@ -51,6 +51,7 @@ create table public.rsvps (
   reminder_enabled boolean not null default false,
   telegram_chat_id text,
   reminder_sent_at timestamptz,
+  reminder_token text unique,
   created_at timestamptz not null default now()
 );
 

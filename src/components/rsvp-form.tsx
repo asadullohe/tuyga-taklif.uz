@@ -19,12 +19,18 @@ export function RsvpForm({ slug }: { slug: string }) {
       guestName: "",
       status: "attending",
       guestCount: 1,
-      reminderEnabled: false,
-      telegramChatId: ""
+      reminderEnabled: false
     }
   });
   const status = form.watch("status");
   const reminderEnabled = form.watch("reminderEnabled");
+
+  type RsvpResponse = {
+    reminder?: {
+      link: string;
+      status: "pending_bot_link";
+    } | null;
+  };
 
   const mutation = useMutation({
     mutationFn: async (values: RsvpInput) => {
@@ -34,7 +40,7 @@ export function RsvpForm({ slug }: { slug: string }) {
         body: JSON.stringify(values)
       });
       if (!response.ok) throw new Error("RSVP yuborilmadi");
-      return response.json();
+      return response.json() as Promise<RsvpResponse>;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["public-rsvps", slug] });
@@ -42,11 +48,29 @@ export function RsvpForm({ slug }: { slug: string }) {
   });
 
   if (mutation.isSuccess) {
+    const reminderLink = mutation.data?.reminder?.link;
+
     return (
       <Card>
-        <CardContent className="flex items-center gap-3 p-5">
-          <CheckCircle2 className="h-5 w-5 text-primary" />
-          <p className="font-medium">Javobingiz qabul qilindi.</p>
+        <CardContent className="space-y-4 p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+            <p className="font-medium">Javobingiz qabul qilindi.</p>
+          </div>
+          {reminderLink ? (
+            <div className="rounded-xl border bg-muted/25 p-4">
+              <p className="text-sm font-semibold">Eslatmani Telegramda ulang</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Tugmani bosing va botda <b>Start</b> qiling. Chat ID avtomatik ulanadi.
+              </p>
+              <Button asChild className="mt-3 w-full">
+                <a href={reminderLink} target="_blank" rel="noopener noreferrer">
+                  <Bell className="h-4 w-4" />
+                  Telegramda eslatmani ulash
+                </a>
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     );
@@ -90,33 +114,22 @@ export function RsvpForm({ slug }: { slug: string }) {
                 <span>
                   <span className="flex items-center gap-2 text-sm font-semibold">
                     <Bell className="h-4 w-4 text-primary" />
-                    To'ydan oldin Telegram eslatma yuborilsinmi?
+                    To'ydan oldin Telegramda eslatma olaymi?
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                    Botga avval <b>/start</b> yuboring, keyin Telegram chat ID kiriting.
+                    Javob yuborgandan keyin botni ochib eslatmani ulaysiz.
                   </span>
                 </span>
               </label>
 
               {reminderEnabled ? (
-                <div className="mt-3 space-y-2">
+                <div className="mt-3 rounded-xl border bg-background/70 p-3 text-xs leading-5 text-muted-foreground">
                   {botUsername ? (
-                    <a
-                      className="inline-flex text-xs font-semibold text-primary underline-offset-4 hover:underline"
-                      href={`https://t.me/${botUsername}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Botni ochish
-                    </a>
-                  ) : null}
-                  <Input {...form.register("telegramChatId")} placeholder="Telegram chat ID" />
-                  {form.formState.errors.telegramChatId ? (
-                    <p className="text-sm text-destructive">{form.formState.errors.telegramChatId.message}</p>
-                  ) : (
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      Chat ID faqat eslatma yuborish uchun saqlanadi.
+                    <p>
+                      RSVP saqlangandan keyin maxsus Telegram tugmasi chiqadi. Bot chatni o'zi taniydi.
                     </p>
+                  ) : (
+                    <p>Bot username sozlanmagan, shuning uchun eslatma linki hozir chiqmaydi.</p>
                   )}
                 </div>
               ) : null}

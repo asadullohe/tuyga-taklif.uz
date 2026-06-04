@@ -29,11 +29,23 @@ type TemplateInput = {
 const now = () => new Date().toISOString();
 const id = () => crypto.randomUUID();
 
+export function createReminderToken() {
+  return crypto.randomBytes(24).toString("base64url");
+}
+
+type StoredRsvp = Rsvp & {
+  reminderToken?: string | null;
+};
+
+type CreateRsvpInput = Omit<Rsvp, "id" | "invitationId" | "createdAt"> & {
+  reminderToken?: string | null;
+};
+
 type DemoStore = {
   users: AppUser[];
   templates: InvitationTemplate[];
   invitations: Invitation[];
-  rsvps: Rsvp[];
+  rsvps: StoredRsvp[];
 };
 
 const globalForDemoStore = globalThis as typeof globalThis & {
@@ -134,6 +146,20 @@ function rsvpFromRow(row: Record<string, any>): Rsvp {
     telegramChatId: row.telegram_chat_id ?? null,
     reminderSentAt: row.reminder_sent_at ?? null,
     createdAt: row.created_at
+  };
+}
+
+function publicRsvp(rsvp: StoredRsvp): Rsvp {
+  return {
+    id: rsvp.id,
+    invitationId: rsvp.invitationId,
+    guestName: rsvp.guestName,
+    status: rsvp.status,
+    guestCount: rsvp.guestCount,
+    reminderEnabled: rsvp.reminderEnabled,
+    telegramChatId: rsvp.telegramChatId,
+    reminderSentAt: rsvp.reminderSentAt,
+    createdAt: rsvp.createdAt
   };
 }
 
@@ -363,7 +389,7 @@ export async function getInvitationBySlug(slug: string) {
   };
 }
 
-export async function createRsvp(invitationId: string, input: Omit<Rsvp, "id" | "invitationId" | "createdAt">) {
+export async function createRsvp(invitationId: string, input: CreateRsvpInput) {
   const supabase = supabaseOrNull();
   if (supabase) {
     const { data, error } = await supabase
@@ -374,7 +400,8 @@ export async function createRsvp(invitationId: string, input: Omit<Rsvp, "id" | 
         status: input.status,
         guest_count: input.guestCount,
         reminder_enabled: input.reminderEnabled,
-        telegram_chat_id: input.telegramChatId || null
+        telegram_chat_id: input.telegramChatId || null,
+        reminder_token: input.reminderToken || null
       })
       .select("*")
       .single();
@@ -382,7 +409,7 @@ export async function createRsvp(invitationId: string, input: Omit<Rsvp, "id" | 
     return rsvpFromRow(data);
   }
 
-  const rsvp: Rsvp = {
+  const rsvp: StoredRsvp = {
     id: id(),
     invitationId,
     guestName: input.guestName,
@@ -390,11 +417,12 @@ export async function createRsvp(invitationId: string, input: Omit<Rsvp, "id" | 
     guestCount: input.guestCount,
     reminderEnabled: input.reminderEnabled,
     telegramChatId: input.telegramChatId || null,
+    reminderToken: input.reminderToken || null,
     reminderSentAt: null,
     createdAt: now()
   };
   memory.rsvps.push(rsvp);
-  return rsvp;
+  return publicRsvp(rsvp);
 }
 
 export async function listRsvpsForInvitation(invitationId: string) {
@@ -411,7 +439,8 @@ export async function listRsvpsForInvitation(invitationId: string) {
 
   return memory.rsvps
     .filter((rsvp) => rsvp.invitationId === invitationId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map(publicRsvp);
 }
 
 export type PendingRsvpReminder = {
@@ -459,7 +488,7 @@ export async function listPendingRsvpReminders(limit = 100): Promise<PendingRsvp
   return memory.rsvps
     .filter((rsvp) => rsvp.status === "attending" && rsvp.reminderEnabled && rsvp.telegramChatId && !rsvp.reminderSentAt)
     .map((rsvp) => ({
-      rsvp,
+      rsvp: publicRsvp(rsvp),
       invitation: memory.invitations.find((invitation) => invitation.id === rsvp.invitationId)
     }))
     .filter((item): item is PendingRsvpReminder => Boolean(item.invitation && item.invitation.status === "published" && isReminderDue(item.invitation, nowMs)))
@@ -478,6 +507,47 @@ export async function markRsvpReminderSent(rsvpId: string) {
 
   const rsvp = memory.rsvps.find((item) => item.id === rsvpId);
   if (rsvp) rsvp.reminderSentAt = sentAt;
+}
+
+export async function connectRsvpReminder(
+  reminderToken: string,
+  telegramChatId: string
+): Promise<PendingRsvpReminder | null> {
+  const supabase = supabaseOrNull();
+
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("rsvps")
+      .update({
+        reminder_enabled: true,
+        telegram_chat_id: telegramChatId
+      })
+      .eq("reminder_token", reminderToken)
+      .eq("status", "attending")
+      .select("*, invitations(*)")
+      .single();
+
+    if (error || !data?.invitations) return null;
+
+    return {
+      rsvp: rsvpFromRow(data),
+      invitation: invitationFromRow(data.invitations)
+    };
+  }
+
+  const rsvp = memory.rsvps.find((item) => item.reminderToken === reminderToken && item.status === "attending");
+  if (!rsvp) return null;
+
+  rsvp.reminderEnabled = true;
+  rsvp.telegramChatId = telegramChatId;
+
+  const invitation = memory.invitations.find((item) => item.id === rsvp.invitationId);
+  if (!invitation) return null;
+
+  return {
+    rsvp: publicRsvp(rsvp),
+    invitation
+  };
 }
 
 export async function trackEvent(

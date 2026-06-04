@@ -20,6 +20,7 @@ declare global {
 }
 
 type WidgetStatus = "idle" | "loading" | "ready" | "error" | "missing_bot";
+type AuthPendingSource = "widget" | "mini-app" | "dev";
 
 export function LoginClient({
   appUrl,
@@ -32,27 +33,41 @@ export function LoginClient({
 }) {
   const router = useRouter();
   const widgetRef = useRef<HTMLDivElement>(null);
+  const pendingRef = useRef(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [widgetStatus, setWidgetStatus] = useState<WidgetStatus>("idle");
+  const [authPending, setAuthPending] = useState<AuthPendingSource | null>(null);
   const [origin, setOrigin] = useState("");
   const [authOrigin, setAuthOrigin] = useState("");
   const [hasMiniAppInitData, setHasMiniAppInitData] = useState(false);
   const [redirectingToPrimaryDomain, setRedirectingToPrimaryDomain] = useState(false);
 
-  const completeLogin = useCallback(async (endpoint: string, body?: unknown) => {
+  const completeLogin = useCallback(async (endpoint: string, body: unknown, source: AuthPendingSource) => {
+    if (pendingRef.current) return;
+    pendingRef.current = true;
+    setAuthPending(source);
     setError(null);
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined
-    });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      setError(payload.message || "Login amalga oshmadi");
-      return;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setError(payload.message || "Login amalga oshmadi");
+        pendingRef.current = false;
+        setAuthPending(null);
+        return;
+      }
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Login so'rovi yuborilmadi. Internet aloqasini tekshiring.");
+      pendingRef.current = false;
+      setAuthPending(null);
     }
-    router.push("/dashboard");
-    router.refresh();
   }, [router]);
 
   useEffect(() => {
@@ -68,7 +83,7 @@ export function LoginClient({
       return;
     }
 
-    window.onTelegramAuth = (user) => completeLogin("/api/auth/telegram/login-widget", user);
+    window.onTelegramAuth = (user) => completeLogin("/api/auth/telegram/login-widget", user, "widget");
 
     return () => {
       delete window.onTelegramAuth;
@@ -81,7 +96,7 @@ export function LoginClient({
 
     if (initData) {
       window.Telegram?.WebApp?.ready?.();
-      void completeLogin("/api/auth/telegram/mini-app", { initData });
+      void completeLogin("/api/auth/telegram/mini-app", { initData }, "mini-app");
     }
   }, [completeLogin]);
 
@@ -123,8 +138,10 @@ export function LoginClient({
     const initData = window.Telegram?.WebApp?.initData;
     if (!initData) return;
     window.Telegram?.WebApp?.ready?.();
-    await completeLogin("/api/auth/telegram/mini-app", { initData });
+    await completeLogin("/api/auth/telegram/mini-app", { initData }, "mini-app");
   }
+
+  const pendingLabel = authPending ? getPendingLabel(authPending) : null;
 
   return (
     <Card className="w-full border-white/70 bg-white/85 shadow-[0_24px_80px_rgba(15,23,42,0.14)] backdrop-blur">
@@ -143,6 +160,13 @@ export function LoginClient({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {pendingLabel ? (
+          <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800" role="status" aria-live="polite">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            <span>{pendingLabel}</span>
+          </div>
+        ) : null}
+
         <div className="rounded-lg border bg-white p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -152,9 +176,15 @@ export function LoginClient({
             <StatusBadge status={widgetStatus} />
           </div>
           <div
-            className="flex min-h-14 items-center justify-center rounded-md border border-dashed bg-muted/30 p-3"
+            className="relative flex min-h-14 items-center justify-center rounded-md border border-dashed bg-muted/30 p-3"
             ref={widgetRef}
           >
+            {authPending === "widget" ? (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-white/85 text-sm font-medium text-slate-700 backdrop-blur-sm">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Telegram login tekshirilmoqda...
+              </div>
+            ) : null}
             {widgetStatus === "loading" ? (
               <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -174,19 +204,19 @@ export function LoginClient({
         </div>
 
         {hasMiniAppInitData ? (
-          <Button type="button" variant="outline" className="w-full justify-between" onClick={loginWithMiniApp}>
+          <Button type="button" variant="outline" className="w-full justify-between" onClick={loginWithMiniApp} disabled={Boolean(authPending)}>
             <span className="inline-flex items-center gap-2">
-              <Bot className="h-4 w-4" />
-              Telegram Mini App orqali kirish
+              {authPending === "mini-app" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
+              {authPending === "mini-app" ? "Mini App tekshirilmoqda..." : "Telegram Mini App orqali kirish"}
             </span>
             <ExternalLink className="h-4 w-4" />
           </Button>
         ) : null}
 
         {process.env.NODE_ENV !== "production" ? (
-          <Button type="button" variant="secondary" className="w-full" onClick={() => completeLogin("/api/auth/dev")}>
-            <Code2 className="h-4 w-4" />
-            Dev login
+          <Button type="button" variant="secondary" className="w-full" onClick={() => completeLogin("/api/auth/dev", undefined, "dev")} disabled={Boolean(authPending)}>
+            {authPending === "dev" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Code2 className="h-4 w-4" />}
+            {authPending === "dev" ? "Dev login ochilmoqda..." : "Dev login"}
           </Button>
         ) : null}
 
@@ -199,6 +229,12 @@ export function LoginClient({
       </CardContent>
     </Card>
   );
+}
+
+function getPendingLabel(source: AuthPendingSource) {
+  if (source === "widget") return "Telegram profilingiz tekshirilmoqda...";
+  if (source === "mini-app") return "Mini App sessiyasi tasdiqlanmoqda...";
+  return "Dev sessiya ochilmoqda...";
 }
 
 function getOrigin(value?: string) {

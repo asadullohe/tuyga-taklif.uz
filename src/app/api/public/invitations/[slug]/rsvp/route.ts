@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { createRsvp, getInvitationBySlug, getUserById, listRsvpsForInvitation, trackEvent } from "@/lib/db";
+import {
+  createReminderToken,
+  createRsvp,
+  getInvitationBySlug,
+  getUserById,
+  listRsvpsForInvitation,
+  trackEvent
+} from "@/lib/db";
 import { appUrl } from "@/lib/utils";
 import { sendTelegramMessage } from "@/lib/telegram";
 import { rsvpSchema } from "@/lib/validations";
+import type { Rsvp } from "@/types";
 
 type Params = {
   params: Promise<{ slug: string }>;
@@ -28,7 +36,7 @@ export async function GET(_request: Request, { params }: Params) {
     { total: 0, attending: 0, notAttending: 0, guests: 0 }
   );
 
-  return NextResponse.json({ rsvps, stats });
+  return NextResponse.json({ rsvps: rsvps.map(toPublicRsvp), stats });
 }
 
 export async function POST(request: Request, { params }: Params) {
@@ -37,27 +45,18 @@ export async function POST(request: Request, { params }: Params) {
   if (!invitation) return NextResponse.json({ message: "Invitation not found" }, { status: 404 });
 
   const input = rsvpSchema.parse(await request.json());
+  const wantsReminder = input.status === "attending" && input.reminderEnabled;
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
+  const reminderToken = wantsReminder && botUsername ? createReminderToken() : null;
   const rsvp = await createRsvp(invitation.id, {
     guestName: input.guestName,
     status: input.status,
     guestCount: input.status === "attending" ? input.guestCount : 0,
-    reminderEnabled: input.status === "attending" ? input.reminderEnabled : false,
-    telegramChatId: input.status === "attending" && input.reminderEnabled ? input.telegramChatId : null
+    reminderEnabled: Boolean(reminderToken),
+    telegramChatId: null,
+    reminderToken
   });
   await trackEvent(invitation.id, "rsvp_submitted", { rsvpId: rsvp.id });
-
-  if (rsvp.reminderEnabled && rsvp.telegramChatId) {
-    const message = [
-      "🔔 <b>Eslatma yoqildi</b>",
-      "",
-      `${escapeTelegramHtml(invitation.formData.groomName)} va ${escapeTelegramHtml(invitation.formData.brideName)} to'yiga 24 soat qolganda eslatma yuboramiz.`,
-      `<b>Manzil:</b> ${escapeTelegramHtml(invitation.formData.venueName)}`
-    ].join("\n");
-
-    sendTelegramMessage(rsvp.telegramChatId, message).catch((error) => {
-      console.error("[rsvp-reminder-test]", error instanceof Error ? error.message : error);
-    });
-  }
 
   if (rsvp.status === "attending") {
     const owner = await getUserById(invitation.userId);
@@ -79,7 +78,19 @@ export async function POST(request: Request, { params }: Params) {
     }
   }
 
-  return NextResponse.json({ rsvp }, { status: 201 });
+  return NextResponse.json(
+    {
+      rsvp: toPublicRsvp(rsvp),
+      reminder:
+        reminderToken && botUsername
+          ? {
+              status: "pending_bot_link",
+              link: `https://t.me/${botUsername}?start=rsvp_${reminderToken}`
+            }
+          : null
+    },
+    { status: 201 }
+  );
 }
 
 function escapeTelegramHtml(value: string) {
@@ -87,4 +98,12 @@ function escapeTelegramHtml(value: string) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function toPublicRsvp(rsvp: Rsvp): Rsvp {
+  return {
+    ...rsvp,
+    reminderEnabled: Boolean(rsvp.reminderEnabled && rsvp.telegramChatId),
+    telegramChatId: null
+  };
 }

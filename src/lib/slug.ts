@@ -33,9 +33,9 @@ const cyrillicMap: Record<string, string> = {
   ю: "yu",
   я: "ya",
   қ: "q",
-  ғ: "g",
+  ғ: "g'",
   ҳ: "h",
-  ў: "o"
+  ў: "o'"
 };
 
 export function makeSlug(input: string) {
