@@ -23,7 +23,8 @@ export const defaultLayerPermissions: TemplateLayerPermissions = {
   resizable: true,
   rotatable: true,
   deletable: false,
-  styleEditable: true
+  styleEditable: true,
+  cropEditable: true
 };
 
 export function getLayerPermissions(layer: TemplateLayer): TemplateLayerPermissions {
@@ -266,7 +267,29 @@ export const starterTemplateDocument: TemplateDocument = {
 };
 
 export function cloneStarterTemplateDocument(): TemplateDocument {
-  return structuredClone(starterTemplateDocument);
+  return normalizeTemplateDocument(structuredClone(starterTemplateDocument));
+}
+
+export function normalizeTemplateDocument(document: TemplateDocument): TemplateDocument {
+  return {
+    ...structuredClone(document),
+    version: 2,
+    timeline: document.timeline ?? { durationMs: 6000 },
+    layers: document.layers.map((layer) => ({
+      ...layer,
+      permissions: {
+        ...defaultLayerPermissions,
+        ...layer.permissions
+      },
+      motion: layer.motion ?? {
+        startMs: 0,
+        durationMs: 700,
+        easing: "ease-out",
+        enter: "none",
+        exit: "none"
+      }
+    }))
+  };
 }
 
 export function resolveLayerText(layer: TemplateLayer, data?: Partial<WeddingFormData>) {
@@ -279,10 +302,12 @@ export function sanitizeUserDesignDocument(
   current: TemplateDocument,
   candidate: TemplateDocument
 ): TemplateDocument {
-  const candidateLayers = new Map(candidate.layers.map((layer) => [layer.id, layer]));
+  const normalizedCurrent = normalizeTemplateDocument(current);
+  const normalizedCandidate = normalizeTemplateDocument(candidate);
+  const candidateLayers = new Map(normalizedCandidate.layers.map((layer) => [layer.id, layer]));
   const layers: TemplateLayer[] = [];
 
-  for (const currentLayer of current.layers) {
+  for (const currentLayer of normalizedCurrent.layers) {
     const candidateLayer = candidateLayers.get(currentLayer.id);
     const permissions = getLayerPermissions(currentLayer);
 
@@ -340,6 +365,13 @@ export function sanitizeUserDesignDocument(
         nextLayer.fit = candidateLayer.fit;
         nextLayer.radius = candidateLayer.radius;
       }
+      if (permissions.cropEditable) {
+        nextLayer.crop = candidateLayer.crop;
+        nextLayer.focalX = candidateLayer.focalX;
+        nextLayer.focalY = candidateLayer.focalY;
+        nextLayer.flipX = candidateLayer.flipX;
+        nextLayer.flipY = candidateLayer.flipY;
+      }
     }
 
     if (nextLayer.type === "ornament" && candidateLayer.type === "ornament" && permissions.styleEditable) {
@@ -352,7 +384,7 @@ export function sanitizeUserDesignDocument(
   }
 
   return {
-    ...current,
+    ...normalizedCurrent,
     layers
   };
 }

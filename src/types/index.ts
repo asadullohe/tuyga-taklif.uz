@@ -39,6 +39,15 @@ export type TemplateLayerPermissions = {
   rotatable: boolean;
   deletable: boolean;
   styleEditable: boolean;
+  cropEditable?: boolean;
+};
+
+export type TemplateLayerMotion = {
+  startMs: number;
+  durationMs: number;
+  easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+  enter: "none" | "fade" | "rise" | "slide-left" | "slide-right" | "zoom";
+  exit?: "none" | "fade";
 };
 
 export type TemplateLayerBase = {
@@ -52,7 +61,9 @@ export type TemplateLayerBase = {
   opacity: number;
   locked: boolean;
   visible: boolean;
+  groupId?: string;
   permissions?: TemplateLayerPermissions;
+  motion?: TemplateLayerMotion;
   shadow?: {
     color: string;
     blur: number;
@@ -95,6 +106,16 @@ export type TemplateImageLayer = TemplateLayerBase & {
   binding?: "coverImageUrl";
   fit: "cover" | "contain";
   radius: number;
+  crop?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  focalX?: number;
+  focalY?: number;
+  flipX?: boolean;
+  flipY?: boolean;
 };
 
 export type OrnamentKind =
@@ -122,7 +143,7 @@ export type TemplateLayer =
   | TemplateOrnamentLayer;
 
 export type TemplateDocument = {
-  version: 1;
+  version: 1 | 2;
   width: number;
   height: number;
   background: string;
@@ -133,6 +154,9 @@ export type TemplateDocument = {
     opacity: number;
   };
   layers: TemplateLayer[];
+  timeline?: {
+    durationMs: number;
+  };
 };
 
 export type InvitationTemplate = {
@@ -143,6 +167,7 @@ export type InvitationTemplate = {
   previewImageUrl?: string | null;
   schema: TemplateField[];
   designDocument?: TemplateDocument | null;
+  revision?: number;
   status: "active" | "inactive";
   createdAt: string;
   updatedAt: string;

@@ -104,6 +104,7 @@ function templateFromRow(row: Record<string, any>): InvitationTemplate {
     previewImageUrl: row.preview_image_url,
     schema: row.template_schema,
     designDocument: row.design_document ?? null,
+    revision: row.revision ?? 1,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -676,16 +677,39 @@ export async function createTemplate(input: TemplateInput) {
 export async function updateTemplate(templateId: string, input: Partial<TemplateInput>) {
   const supabase = supabaseOrNull();
   if (supabase) {
+    const { data: current } = await supabase
+      .from("templates")
+      .select("*")
+      .eq("id", templateId)
+      .maybeSingle();
+    if (!current) return null;
+
+    const currentRevision = typeof current.revision === "number" ? current.revision : null;
+    if (input.designDocument && current.design_document && currentRevision !== null) {
+      const { error: revisionError } = await supabase.from("template_revisions").upsert(
+        {
+          template_id: templateId,
+          revision: currentRevision,
+          design_document: current.design_document
+        },
+        { onConflict: "template_id,revision" }
+      );
+      if (revisionError && revisionError.code !== "42P01") throw revisionError;
+    }
+
+    const changes: Record<string, unknown> = {
+      name: input.name,
+      description: input.description,
+      preview_image_url: input.previewImageUrl,
+      design_document: input.designDocument,
+      status: input.status,
+      updated_at: now()
+    };
+    if (currentRevision !== null && input.designDocument) changes.revision = currentRevision + 1;
+
     const { data, error } = await supabase
       .from("templates")
-      .update({
-        name: input.name,
-        description: input.description,
-        preview_image_url: input.previewImageUrl,
-        design_document: input.designDocument,
-        status: input.status,
-        updated_at: now()
-      })
+      .update(changes)
       .eq("id", templateId)
       .select("*")
       .single();
@@ -695,7 +719,10 @@ export async function updateTemplate(templateId: string, input: Partial<Template
 
   const template = memory.templates.find((item) => item.id === templateId);
   if (!template) return null;
-  Object.assign(template, input, { updatedAt: now() });
+  Object.assign(template, input, {
+    revision: input.designDocument ? (template.revision ?? 1) + 1 : template.revision,
+    updatedAt: now()
+  });
   return template;
 }
 

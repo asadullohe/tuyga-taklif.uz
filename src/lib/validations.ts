@@ -6,7 +6,8 @@ const layerPermissionsSchema = z.object({
   resizable: z.boolean(),
   rotatable: z.boolean(),
   deletable: z.boolean(),
-  styleEditable: z.boolean()
+  styleEditable: z.boolean(),
+  cropEditable: z.boolean().optional()
 });
 
 const layerBaseSchema = z.object({
@@ -20,7 +21,17 @@ const layerBaseSchema = z.object({
   opacity: z.number().min(0).max(1),
   locked: z.boolean(),
   visible: z.boolean(),
+  groupId: z.string().min(1).optional(),
   permissions: layerPermissionsSchema.optional(),
+  motion: z
+    .object({
+      startMs: z.number().min(0),
+      durationMs: z.number().min(0),
+      easing: z.enum(["linear", "ease-in", "ease-out", "ease-in-out"]),
+      enter: z.enum(["none", "fade", "rise", "slide-left", "slide-right", "zoom"]),
+      exit: z.enum(["none", "fade"]).optional()
+    })
+    .optional(),
   shadow: z
     .object({
       color: z.string().min(1),
@@ -78,7 +89,19 @@ const imageLayerSchema = layerBaseSchema.extend({
   src: z.string(),
   binding: z.literal("coverImageUrl").optional(),
   fit: z.enum(["cover", "contain"]),
-  radius: z.number().min(0)
+  radius: z.number().min(0),
+  crop: z
+    .object({
+      x: z.number().min(0),
+      y: z.number().min(0),
+      width: z.number().positive(),
+      height: z.number().positive()
+    })
+    .optional(),
+  focalX: z.number().min(0).max(1).optional(),
+  focalY: z.number().min(0).max(1).optional(),
+  flipX: z.boolean().optional(),
+  flipY: z.boolean().optional()
 });
 
 const ornamentLayerSchema = layerBaseSchema.extend({
@@ -99,7 +122,7 @@ const ornamentLayerSchema = layerBaseSchema.extend({
 });
 
 const designDocumentSchema = z.object({
-  version: z.literal(1),
+  version: z.union([z.literal(1), z.literal(2)]),
   width: z.number().positive(),
   height: z.number().positive(),
   background: z.string().min(1),
@@ -118,7 +141,8 @@ const designDocumentSchema = z.object({
       imageLayerSchema,
       ornamentLayerSchema
     ])
-  )
+  ),
+  timeline: z.object({ durationMs: z.number().positive() }).optional()
 });
 
 export const weddingFormSchema = z.object({
@@ -155,6 +179,7 @@ export const templateSchema = z.object({
   description: z.string().min(5),
   previewImageUrl: z.string().url().optional().or(z.literal("")),
   designDocument: designDocumentSchema.optional(),
+  revision: z.number().int().positive().optional(),
   status: z.enum(["active", "inactive"]).default("active")
 });
 

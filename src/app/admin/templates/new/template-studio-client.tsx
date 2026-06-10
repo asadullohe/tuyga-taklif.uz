@@ -1,21 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlignCenter,
+  AlignHorizontalDistributeCenter,
   AlignLeft,
   AlignRight,
+  AlignVerticalDistributeCenter,
   ArrowDown,
   ArrowUp,
   Copy,
   Eye,
   EyeOff,
   Flower2,
+  Group,
   ImagePlus,
-  Grid3X3,
+  Layers3,
   Loader2,
   Lock,
+  Minus,
+  MousePointer2,
   Palette,
   Plus,
   Redo2,
@@ -24,16 +29,19 @@ import {
   Trash2,
   Type,
   Undo2,
+  Ungroup,
   Unlock,
   Upload,
   WandSparkles
 } from "lucide-react";
 import { TemplateCanvas } from "@/components/template-canvas";
 import { TemplateOrnament } from "@/components/template-ornament";
+import { TemplateTimeline } from "@/components/template-timeline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useDesignEditor } from "@/hooks/use-design-editor";
 import {
   cloneStarterTemplateDocument,
   defaultLayerPermissions,
@@ -42,7 +50,6 @@ import {
 } from "@/lib/template-document";
 import type {
   OrnamentKind,
-  TemplateDocument,
   TemplateImageLayer,
   TemplateLayer,
   TemplateOrnamentLayer,
@@ -51,8 +58,7 @@ import type {
 } from "@/types";
 import { cn } from "@/lib/utils";
 
-const canvasScale = 0.36;
-const fontFamilies = [
+const fonts = [
   "Cormorant Garamond",
   "Playfair Display",
   "Great Vibes",
@@ -60,10 +66,9 @@ const fontFamilies = [
   "Marcellus",
   "Montserrat",
   "Georgia",
-  "Baskerville",
-  "Times New Roman",
-  "Arial"
+  "Baskerville"
 ];
+
 const ornamentPresets: Array<{
   kind: OrnamentKind;
   label: string;
@@ -80,20 +85,6 @@ const ornamentPresets: Array<{
   { kind: "wax-seal", label: "Maison Seal", collection: "Heritage", color: "#7e2f32", secondaryColor: "#c98b78" },
   { kind: "double-ring", label: "Eternal Rings", collection: "Joaillerie", color: "#a67c36", secondaryColor: "#ead7a6" }
 ];
-const gradientPresets = [
-  "linear-gradient(135deg, #fff8e8 0%, #d7b66a 52%, #8b652b 100%)",
-  "linear-gradient(145deg, #092f27 0%, #176653 55%, #c9a866 100%)",
-  "radial-gradient(circle at 30% 18%, #fffdf8 0%, #ead6dc 50%, #b88c99 100%)",
-  "linear-gradient(160deg, #f8efe1 0%, #c8d6c6 48%, #6f8c76 100%)"
-];
-const canvasBackgroundPresets = [
-  "#fffaf2",
-  "#f4eadb",
-  "#eaf0e8",
-  "#181d1a",
-  gradientPresets[0],
-  gradientPresets[1]
-];
 
 type UploadedAsset = {
   id: string;
@@ -104,200 +95,162 @@ type UploadedAsset = {
   createdAt: string;
 };
 
+type LeftTab = "elements" | "assets" | "layers";
+
 export function TemplateStudioClient() {
   const router = useRouter();
-  const [document, setDocument] = useState<TemplateDocument>(() => cloneStarterTemplateDocument());
-  const documentRef = useRef(document);
-  const historyRef = useRef<TemplateDocument[]>([structuredClone(document)]);
-  const historyIndexRef = useRef(0);
-  const [historyIndex, setHistoryIndex] = useState(0);
-  const [selectedLayerId, setSelectedLayerId] = useState<string | null>("groom-name");
+  const editor = useDesignEditor(cloneStarterTemplateDocument());
+  const [leftTab, setLeftTab] = useState<LeftTab>("elements");
+  const [zoom, setZoom] = useState(0.34);
   const [snapToGrid, setSnapToGrid] = useState(true);
+  const [playbackMs, setPlaybackMs] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const [name, setName] = useState("Yangi premium shablon");
   const [description, setDescription] = useState("Layer-based, to'liq tahrirlanadigan to'y taklifnomasi.");
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingAsset, setIsUploadingAsset] = useState(false);
-  const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
+  const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+  const [isUploading, setIsUploading] = useState(false);
+  const [assets, setAssets] = useState<UploadedAsset[]>([]);
   const [assetError, setAssetError] = useState("");
-  const [error, setError] = useState("");
+  const exportCanvasRef = useRef<(() => string) | null>(null);
 
-  const selectedLayer = useMemo(
-    () => document.layers.find((layer) => layer.id === selectedLayerId) ?? null,
-    [document.layers, selectedLayerId]
-  );
-
-  const replaceDocument = useCallback((next: TemplateDocument) => {
-    documentRef.current = next;
-    setDocument(next);
-  }, []);
-
-  const commitDocument = useCallback(
-    (next: TemplateDocument) => {
-      const committed = structuredClone(next);
-      const currentHistory = historyRef.current[historyIndexRef.current];
-      if (JSON.stringify(currentHistory) === JSON.stringify(committed)) return;
-
-      const history = historyRef.current.slice(0, historyIndexRef.current + 1);
-      history.push(committed);
-      historyRef.current = history.slice(-80);
-      const nextIndex = historyRef.current.length - 1;
-      historyIndexRef.current = nextIndex;
-      setHistoryIndex(nextIndex);
-      replaceDocument(committed);
-    },
-    [replaceDocument]
-  );
-
-  const createLayerDocument = useCallback(
-    (id: string, patch: Partial<TemplateLayer>) => ({
-      ...documentRef.current,
-      layers: documentRef.current.layers.map((layer) =>
-        layer.id === id ? ({ ...layer, ...patch } as TemplateLayer) : layer
-      )
-    }),
-    []
-  );
-
-  const updateLayer = (id: string, patch: Partial<TemplateLayer>) => {
-    commitDocument(createLayerDocument(id, patch));
-  };
-
-  const updateLayerTransient = (id: string, patch: Partial<TemplateLayer>) => {
-    replaceDocument(createLayerDocument(id, patch));
-  };
-
-  const commitCurrentInteraction = useCallback(() => {
-    commitDocument(documentRef.current);
-  }, [commitDocument]);
-
-  const undo = useCallback(() => {
-    if (historyIndexRef.current <= 0) return;
-    const nextIndex = historyIndexRef.current - 1;
-    historyIndexRef.current = nextIndex;
-    setHistoryIndex(nextIndex);
-    replaceDocument(structuredClone(historyRef.current[nextIndex]));
-  }, [replaceDocument]);
-
-  const redo = useCallback(() => {
-    if (historyIndexRef.current >= historyRef.current.length - 1) return;
-    const nextIndex = historyIndexRef.current + 1;
-    historyIndexRef.current = nextIndex;
-    setHistoryIndex(nextIndex);
-    replaceDocument(structuredClone(historyRef.current[nextIndex]));
-  }, [replaceDocument]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z") return;
-      event.preventDefault();
-      if (event.shiftKey) redo();
-      else undo();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [redo, undo]);
+  const selectedLayer = editor.selectedLayers.length === 1 ? editor.selectedLayers[0] : null;
 
   useEffect(() => {
     const controller = new AbortController();
-
     fetch("/api/admin/assets", { signal: controller.signal })
       .then(async (response) => {
-        if (!response.ok) throw new Error("Asset kutubxonasi yuklanmadi");
-        return response.json() as Promise<{ assets: UploadedAsset[] }>;
+        const result = await response.json() as { assets?: UploadedAsset[]; message?: string };
+        if (!response.ok) throw new Error(result.message ?? "Assetlar olinmadi");
+        setAssets(result.assets ?? []);
       })
-      .then((result) => setUploadedAssets(result.assets))
-      .catch((loadError) => {
-        if (loadError instanceof Error && loadError.name !== "AbortError") {
-          setAssetError(loadError.message);
-        }
+      .catch((error) => {
+        if (error instanceof Error && error.name !== "AbortError") setAssetError(error.message);
       });
-
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!playing) return;
+    const startedAt = performance.now() - playbackMs;
+    let frame = 0;
+    const tick = (now: number) => {
+      const duration = editor.document.timeline?.durationMs ?? 6000;
+      const next = now - startedAt;
+      if (next >= duration) {
+        setPlaybackMs(duration);
+        setPlaying(false);
+        return;
+      }
+      setPlaybackMs(next);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [editor.document.timeline?.durationMs, playbackMs, playing]);
 
   const addLayer = (type: "text" | "shape" | "image") => {
     const id = `${type}-${crypto.randomUUID()}`;
     const base = {
       id,
+      name: type === "text" ? "Yangi matn" : type === "shape" ? "Yangi shakl" : "Yangi rasm",
       x: 290,
-      y: 820,
+      y: 780,
       width: 500,
-      height: 180,
+      height: type === "text" ? 160 : 360,
       rotation: 0,
       opacity: 1,
       locked: false,
       visible: true,
       permissions: { ...defaultLayerPermissions }
     };
-    let layer: TemplateLayer;
-
-    if (type === "text") {
-      layer = {
-        ...base,
-        name: "Yangi matn",
-        type,
-        text: "Yangi matn",
-        color: "#1f2b25",
-        fontFamily: "Georgia",
-        fontSize: 64,
-        fontWeight: 500,
-        lineHeight: 1.2,
-        letterSpacing: 0,
-        align: "center"
-      };
-    } else if (type === "shape") {
-      layer = {
-        ...base,
-        name: "Yangi shakl",
-        type,
-        fill: "#d7c2a6",
-        stroke: "#8a6645",
-        strokeWidth: 0,
-        radius: 32
-      };
-    } else {
-      layer = {
-        ...base,
-        name: "Yangi rasm",
-        type,
-        src: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80",
-        fit: "cover",
-        radius: 24
-      };
-    }
-
-    commitDocument({ ...documentRef.current, layers: [...documentRef.current.layers, layer] });
-    setSelectedLayerId(id);
+    const layer: TemplateLayer =
+      type === "text"
+        ? {
+            ...base,
+            type,
+            text: "Yangi matn",
+            color: "#1f2b25",
+            fontFamily: "Cormorant Garamond",
+            fontSize: 64,
+            fontWeight: 600,
+            lineHeight: 1.15,
+            letterSpacing: 0,
+            align: "center"
+          }
+        : type === "shape"
+          ? {
+              ...base,
+              type,
+              fill: "#e8dcc5",
+              stroke: "#96733b",
+              strokeWidth: 1,
+              radius: 28
+            }
+          : {
+              ...base,
+              type,
+              src: "",
+              fit: "cover",
+              radius: 24
+            };
+    editor.commitDocument({ ...editor.documentRef.current, layers: [...editor.documentRef.current.layers, layer] });
+    editor.setSelectedLayerIds([id]);
   };
 
-  const addOrnament = (ornament: OrnamentKind) => {
+  const addOrnament = (preset: (typeof ornamentPresets)[number]) => {
     const id = `ornament-${crypto.randomUUID()}`;
-    const preset = ornamentPresets.find((item) => item.kind === ornament);
     const layer: TemplateOrnamentLayer = {
       id,
-      name: preset?.label ?? "Ornament",
+      name: preset.label,
       type: "ornament",
-      ornament,
-      x: ornament === "floral-corner" ? 80 : 240,
-      y: ornament === "floral-corner" ? 80 : 330,
-      width: ornament === "royal-divider" ? 600 : 320,
-      height: ornament === "royal-divider" ? 90 : 320,
+      ornament: preset.kind,
+      x: preset.kind === "royal-divider" ? 240 : 80,
+      y: preset.kind === "royal-divider" ? 350 : 90,
+      width: preset.kind === "royal-divider" ? 600 : 300,
+      height: preset.kind === "royal-divider" ? 100 : 300,
       rotation: 0,
       opacity: 1,
       locked: false,
       visible: true,
       permissions: { ...defaultLayerPermissions },
-      color: preset?.color ?? "#9a743f",
-      secondaryColor: preset?.secondaryColor ?? "#eadab8",
-      strokeWidth: 2.5
+      color: preset.color,
+      secondaryColor: preset.secondaryColor,
+      strokeWidth: 2.4
     };
-
-    commitDocument({ ...documentRef.current, layers: [...documentRef.current.layers, layer] });
-    setSelectedLayerId(id);
+    editor.commitDocument({ ...editor.documentRef.current, layers: [...editor.documentRef.current.layers, layer] });
+    editor.setSelectedLayerIds([id]);
   };
 
-  const addUploadedAsset = (asset: UploadedAsset) => {
+  const uploadAsset = async (file?: File, target: "library" | "layer" | "background" = "layer") => {
+    if (!file) return undefined;
+    setIsUploading(true);
+    setAssetError("");
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      const response = await fetch("/api/admin/assets", { method: "POST", body });
+      const result = await response.json() as { asset?: UploadedAsset; message?: string };
+      if (!response.ok || !result.asset) throw new Error(result.message ?? "Asset yuklanmadi");
+      const asset = result.asset;
+      setAssets((current) => [asset, ...current]);
+      if (target === "background") {
+        editor.commitDocument({
+          ...editor.documentRef.current,
+          backgroundImage: { src: asset.url, fit: "cover", position: "center", opacity: 1 }
+        });
+      }
+      if (target === "layer") addAssetLayer(asset);
+      return asset;
+    } catch (error) {
+      setAssetError(error instanceof Error ? error.message : "Asset yuklanmadi");
+    } finally {
+      setIsUploading(false);
+    }
+    return undefined;
+  };
+
+  const addAssetLayer = (asset: UploadedAsset) => {
     const id = `image-${crypto.randomUUID()}`;
     const layer: TemplateImageLayer = {
       id,
@@ -313,1002 +266,388 @@ export function TemplateStudioClient() {
       visible: true,
       permissions: { ...defaultLayerPermissions },
       src: asset.url,
-      fit: "contain",
+      fit: "cover",
       radius: 0
     };
-    commitDocument({ ...documentRef.current, layers: [...documentRef.current.layers, layer] });
-    setSelectedLayerId(id);
+    editor.commitDocument({ ...editor.documentRef.current, layers: [...editor.documentRef.current.layers, layer] });
+    editor.setSelectedLayerIds([id]);
   };
 
-  const setBackgroundAsset = (asset: UploadedAsset) => {
-    commitDocument({
-      ...documentRef.current,
-      backgroundImage: {
-        src: asset.url,
-        fit: "cover",
-        position: "center",
-        opacity: 1
-      }
-    });
-    setSelectedLayerId(null);
-  };
-
-  const uploadAsset = async (
-    file?: File,
-    target: "layer" | "background" | "library" = "layer"
-  ): Promise<UploadedAsset | undefined> => {
-    if (!file) return undefined;
-    setIsUploadingAsset(true);
-    setAssetError("");
-
-    try {
-      const formData = new FormData();
-      formData.set("file", file);
-      const response = await fetch("/api/admin/assets", {
-        method: "POST",
-        body: formData
-      });
-      const result = await response.json() as { asset?: UploadedAsset; message?: string };
-      if (!response.ok || !result.asset) throw new Error(result.message ?? "Asset yuklanmadi");
-
-      setUploadedAssets((current) => [result.asset!, ...current]);
-      if (target === "background") setBackgroundAsset(result.asset);
-      if (target === "layer") addUploadedAsset(result.asset);
-      return result.asset;
-    } catch (uploadError) {
-      setAssetError(uploadError instanceof Error ? uploadError.message : "Asset yuklanmadi");
-      return undefined;
-    } finally {
-      setIsUploadingAsset(false);
+  const deleteAsset = async (asset: UploadedAsset) => {
+    const response = await fetch(`/api/admin/assets?path=${encodeURIComponent(asset.id)}`, { method: "DELETE" });
+    if (!response.ok) {
+      const result = await response.json() as { message?: string };
+      setAssetError(result.message ?? "Asset o'chirilmadi");
+      return;
     }
+    setAssets((current) => current.filter((item) => item.id !== asset.id));
   };
 
-  const removeLayer = (layerId: string) => {
-    commitDocument({
-      ...documentRef.current,
-      layers: documentRef.current.layers.filter((layer) => layer.id !== layerId)
-    });
-    if (selectedLayerId === layerId) setSelectedLayerId(null);
-  };
-
-  const removeSelected = () => {
-    if (!selectedLayer) return;
-    removeLayer(selectedLayer.id);
-  };
-
-  const duplicateSelected = () => {
-    if (!selectedLayer) return;
-    const copy = {
-      ...selectedLayer,
-      id: `${selectedLayer.type}-${crypto.randomUUID()}`,
-      name: `${selectedLayer.name} copy`,
-      x: selectedLayer.x + 36,
-      y: selectedLayer.y + 36
-    };
-    commitDocument({ ...documentRef.current, layers: [...documentRef.current.layers, copy] });
-    setSelectedLayerId(copy.id);
-  };
-
-  const moveSelected = (direction: -1 | 1) => {
-    if (!selectedLayerId) return;
-    const index = documentRef.current.layers.findIndex((layer) => layer.id === selectedLayerId);
-    const nextIndex = index + direction;
-    if (index < 0 || nextIndex < 0 || nextIndex >= documentRef.current.layers.length) return;
-    const layers = [...documentRef.current.layers];
-    [layers[index], layers[nextIndex]] = [layers[nextIndex], layers[index]];
-    commitDocument({ ...documentRef.current, layers });
+  const moveLayer = (id: string, direction: -1 | 1) => {
+    const layers = [...editor.documentRef.current.layers];
+    const index = layers.findIndex((layer) => layer.id === id);
+    const next = index + direction;
+    if (index < 0 || next < 0 || next >= layers.length) return;
+    [layers[index], layers[next]] = [layers[next], layers[index]];
+    editor.commitDocument({ ...editor.documentRef.current, layers });
   };
 
   const saveTemplate = async () => {
     setIsSaving(true);
-    setError("");
+    setSaveState("idle");
     try {
+      let previewImageUrl = "";
+      const dataUrl = exportCanvasRef.current?.();
+      if (dataUrl) {
+        try {
+          const blob = await fetch(dataUrl).then((response) => response.blob());
+          const preview = await uploadAsset(
+            new File([blob], `preview-${Date.now()}.png`, { type: "image/png" }),
+            "library"
+          );
+          previewImageUrl = preview?.url ?? "";
+        } catch {
+          previewImageUrl = "";
+        }
+      }
       const response = await fetch("/api/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           description,
-          previewImageUrl: "",
+          previewImageUrl,
           status: "active",
-          designDocument: document
+          designDocument: editor.document
         })
       });
       if (!response.ok) throw new Error("Template saqlanmadi");
+      setSaveState("saved");
       router.push("/admin");
       router.refresh();
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Template saqlanmadi");
+    } catch {
+      setSaveState("error");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="grid min-h-[calc(100vh-4rem)] xl:h-[calc(100dvh-4rem)] xl:min-h-0 xl:grid-cols-[280px_minmax(520px,1fr)_330px] xl:overflow-hidden">
-      <aside className="border-r border-white/10 bg-[#1d221f] p-4 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain">
-        <div className="grid grid-cols-3 gap-2">
-          <ToolButton icon={<Type />} label="Matn" onClick={() => addLayer("text")} />
-          <ToolButton icon={<Square />} label="Shakl" onClick={() => addLayer("shape")} />
-          <ToolButton icon={<ImagePlus />} label="Rasm" onClick={() => addLayer("image")} />
-        </div>
-
-        <div className="mt-6 border-t border-white/10 pt-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <WandSparkles className="h-4 w-4 text-[#d6b86d]" />
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Atelier assets</p>
-              </div>
-              <p className="mt-1 text-[10px] leading-4 text-white/30">Wedding ornament collection</p>
-            </div>
-            <span className="rounded-full border border-[#d6b86d]/25 bg-[#d6b86d]/10 px-2 py-1 text-[9px] font-bold tracking-wider text-[#d6b86d]">
-              LUXE
-            </span>
+    <div className="flex h-[calc(100dvh-4rem)] min-h-[720px] flex-col overflow-hidden bg-[#151a18] text-[#f6f0e5]">
+      <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 bg-[#181e1b]/95 px-4 backdrop-blur">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-9 w-9 place-items-center rounded-full border border-[#d5b975]/40 bg-[#d5b975]/10">
+            <WandSparkles className="h-4 w-4 text-[#d5b975]" />
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {ornamentPresets.map((preset) => (
-              <button
-                key={preset.kind}
-                type="button"
-                onClick={() => addOrnament(preset.kind)}
-                className="group overflow-hidden rounded-lg border border-[#d8c9aa]/15 bg-[#f4ede0] text-left shadow-[0_8px_24px_rgba(0,0,0,.12)] transition duration-300 hover:-translate-y-0.5 hover:border-[#d6b86d]/60 hover:shadow-[0_12px_30px_rgba(0,0,0,.22)]"
-              >
-                <div
-                  className="relative grid h-[82px] place-items-center overflow-hidden"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 50% 36%, rgba(255,255,255,.94), rgba(231,220,198,.62))"
-                  }}
-                >
-                  <div className="pointer-events-none absolute inset-[5px] border border-[#9b7a3d]/15" />
-                  <div className="h-[62px] w-[82px] transition duration-500 group-hover:scale-110 group-hover:rotate-[2deg]">
-                    <TemplateOrnament
-                      kind={preset.kind}
-                      color={preset.color}
-                      secondaryColor={preset.secondaryColor}
-                      strokeWidth={1.45}
-                    />
-                  </div>
-                </div>
-                <div className="border-t border-[#8a6a35]/10 px-2 py-2">
-                  <span className="block truncate font-['Cormorant_Garamond'] text-[12px] font-semibold leading-none text-[#30291f]">
-                    {preset.label}
-                  </span>
-                  <span className="mt-1 block truncate text-[8px] font-bold uppercase tracking-[0.16em] text-[#9b7a3d]">
-                    {preset.collection}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <label
-            className={cn(
-              "mt-3 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#d6b86d]/35 bg-[#d6b86d]/[0.06] px-3 py-4 text-center transition hover:border-[#d6b86d]/70 hover:bg-[#d6b86d]/10",
-              isUploadingAsset && "pointer-events-none opacity-60"
-            )}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              void uploadAsset(event.dataTransfer.files[0]);
-            }}
-          >
+          <div className="min-w-0">
             <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              className="sr-only"
-              disabled={isUploadingAsset}
-              onChange={(event) => {
-                void uploadAsset(event.target.files?.[0]);
-                event.target.value = "";
-              }}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="w-full truncate bg-transparent font-['Cormorant_Garamond'] text-lg font-semibold text-white outline-none"
+              aria-label="Template nomi"
             />
-            {isUploadingAsset ? (
-              <Loader2 className="h-5 w-5 animate-spin text-[#d6b86d]" />
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/35">Invitation atelier · 1080 × 1920</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <StudioIcon label="Undo" disabled={editor.historyIndex === 0} onClick={editor.undo}><Undo2 /></StudioIcon>
+          <StudioIcon label="Redo" disabled={editor.historyIndex >= editor.historyLength - 1} onClick={editor.redo}><Redo2 /></StudioIcon>
+          <div className="mx-2 h-6 w-px bg-white/10" />
+          <StudioIcon label="Duplicate" disabled={!editor.selectedLayers.length} onClick={editor.duplicateSelected}><Copy /></StudioIcon>
+          <StudioIcon label="Group" disabled={editor.selectedLayers.length < 2} onClick={editor.groupSelected}><Group /></StudioIcon>
+          <StudioIcon label="Ungroup" disabled={!editor.selectedLayers.some((layer) => layer.groupId)} onClick={editor.ungroupSelected}><Ungroup /></StudioIcon>
+          <StudioIcon label="Delete" disabled={!editor.selectedLayers.length} onClick={editor.removeSelected}><Trash2 /></StudioIcon>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className={cn(
+            "hidden text-xs sm:block",
+            saveState === "saved" && "text-emerald-300",
+            saveState === "error" && "text-red-300",
+            saveState === "idle" && "text-white/35"
+          )}>
+            {saveState === "saved" ? "Saved" : saveState === "error" ? "Save error" : "Draft"}
+          </span>
+          <Button
+            type="button"
+            onClick={() => void saveTemplate()}
+            disabled={isSaving}
+            className="bg-[#d5b975] text-[#1c211e] hover:bg-[#ead49b]"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Saqlash
+          </Button>
+        </div>
+      </header>
+
+      <div className="grid min-h-0 flex-1 grid-cols-[284px_minmax(0,1fr)_326px]">
+        <aside className="flex min-h-0 flex-col border-r border-white/10 bg-[#1b211e]">
+          <div className="grid grid-cols-3 border-b border-white/10 p-2">
+            <Tab active={leftTab === "elements"} onClick={() => setLeftTab("elements")} icon={<Palette />} label="Elements" />
+            <Tab active={leftTab === "assets"} onClick={() => setLeftTab("assets")} icon={<ImagePlus />} label="Assets" />
+            <Tab active={leftTab === "layers"} onClick={() => setLeftTab("layers")} icon={<Layers3 />} label="Layers" />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+            {leftTab === "elements" ? (
+              <ElementsPanel addLayer={addLayer} addOrnament={addOrnament} />
+            ) : leftTab === "assets" ? (
+              <AssetsPanel
+                assets={assets}
+                isUploading={isUploading}
+                error={assetError}
+                onUpload={uploadAsset}
+                onAdd={addAssetLayer}
+                onDelete={deleteAsset}
+              />
             ) : (
-              <Upload className="h-5 w-5 text-[#d6b86d]" />
-            )}
-            <span className="mt-2 text-[11px] font-semibold text-white/70">
-              {isUploadingAsset ? "Yuklanmoqda..." : "Asset yuklash"}
-            </span>
-            <span className="mt-1 text-[9px] leading-4 text-white/30">PNG, JPG, WebP, SVG · 10 MB</span>
-          </label>
-
-          {assetError ? <p className="mt-2 text-[10px] leading-4 text-red-300">{assetError}</p> : null}
-
-          {uploadedAssets.length > 0 ? (
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">My uploads</p>
-                <span className="text-[10px] text-white/25">{uploadedAssets.length}</span>
-              </div>
-              <div className="mt-2 grid grid-cols-3 gap-1.5">
-                {uploadedAssets.map((asset) => (
-                  <div
-                    key={asset.id}
-                    className="group relative aspect-square overflow-hidden rounded-md border border-white/10 bg-white/[0.04] transition hover:border-[#d6b86d]/60"
-                  >
-                    <button
-                      type="button"
-                      title={`${asset.name} ni canvasga qo'shish`}
-                      onClick={() => addUploadedAsset(asset)}
-                      className="absolute inset-0 z-10"
-                      aria-label={`${asset.name} ni canvasga layer sifatida qo'shish`}
-                    />
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={asset.url}
-                      alt={asset.name}
-                      className="h-full w-full object-contain p-1.5 transition duration-300 group-hover:scale-110"
-                    />
-                    <span className="absolute inset-x-0 bottom-0 truncate bg-black/65 px-1 py-0.5 text-[7px] text-white/65 opacity-0 transition group-hover:opacity-100">
-                      {asset.name}
-                    </span>
-                    <button
-                      type="button"
-                      title="Canvas background qilish"
-                      aria-label={`${asset.name} ni canvas background qilish`}
-                      onClick={() => setBackgroundAsset(asset)}
-                      className="absolute right-1 top-1 z-20 rounded bg-black/70 px-1.5 py-1 text-[7px] font-bold text-white opacity-0 shadow transition hover:bg-[#d6b86d] hover:text-[#1d221f] group-hover:opacity-100"
-                    >
-                      BG
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/45">Layerlar</p>
-          <span className="rounded bg-white/10 px-2 py-1 text-xs text-white/60">{document.layers.length}</span>
-        </div>
-
-        <div className="mt-3 space-y-1">
-          {[...document.layers].reverse().map((layer) => (
-            <div
-              key={layer.id}
-              className={cn(
-                "group flex w-full items-center rounded-md text-sm transition",
-                selectedLayerId === layer.id
-                  ? "bg-[#d3ff65] text-[#142018]"
-                  : "text-white/75 hover:bg-white/7 hover:text-white"
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => setSelectedLayerId(layer.id)}
-                className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left"
-              >
-                <LayerIcon type={layer.type} />
-                <span className="min-w-0 flex-1 truncate">{layer.name}</span>
-                {layer.locked ? <Lock className="h-3.5 w-3.5 shrink-0 opacity-60" /> : null}
-                {!layer.visible ? <EyeOff className="h-3.5 w-3.5 shrink-0 opacity-60" /> : null}
-              </button>
-              <button
-                type="button"
-                title={`${layer.name} layerini o'chirish`}
-                aria-label={`${layer.name} layerini o'chirish`}
-                onClick={() => removeLayer(layer.id)}
-                className={cn(
-                  "mr-1 grid h-7 w-7 shrink-0 place-items-center rounded text-current opacity-45 transition hover:bg-red-500/15 hover:text-red-400 hover:opacity-100",
-                  selectedLayerId === layer.id && "hover:bg-red-950/10 hover:text-red-700"
-                )}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      <section className="overflow-auto bg-[#252b27] p-5 sm:p-8 xl:h-full xl:min-h-0 xl:overscroll-contain">
-        <div className="mx-auto flex min-w-fit flex-col items-center">
-          <div className="mb-4 flex w-full max-w-[470px] items-center justify-between gap-3">
-            <div className="flex items-center gap-1">
-              <IconButton label="Undo" onClick={undo} disabled={historyIndex <= 0}>
-                <Undo2 />
-              </IconButton>
-              <IconButton
-                label="Redo"
-                onClick={redo}
-                disabled={historyIndex >= historyRef.current.length - 1}
-              >
-                <Redo2 />
-              </IconButton>
-              <IconButton
-                label={snapToGrid ? "Gridni o'chirish" : "Gridni yoqish"}
-                onClick={() => setSnapToGrid((current) => !current)}
-                active={snapToGrid}
-              >
-                <Grid3X3 />
-              </IconButton>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-white/45">
-              <span>{document.width} × {document.height}</span>
-              <span>{Math.round(canvasScale * 100)}%</span>
-            </div>
-          </div>
-          <div className="rounded-[24px] bg-black/20 p-3 shadow-inner">
-            <TemplateCanvas
-              document={document}
-              selectedLayerId={selectedLayerId}
-              interactive
-              snapToGrid={snapToGrid}
-              scale={canvasScale}
-              onSelectLayer={setSelectedLayerId}
-              onChangeLayer={updateLayerTransient}
-              onInteractionEnd={commitCurrentInteraction}
-            />
-          </div>
-          <p className="mt-4 text-xs text-white/40">
-            Sudrang, burchakdan resize qiling, yuqori nuqtadan aylantiring.
-          </p>
-        </div>
-      </section>
-
-      <aside className="border-l border-white/10 bg-[#1d221f] p-5 text-white xl:h-full xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain">
-        <div className="space-y-4 border-b border-white/10 pb-5">
-          <Field label="Shablon nomi">
-            <DarkInput value={name} onChange={(event) => setName(event.target.value)} />
-          </Field>
-          <Field label="Tavsif">
-            <Textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
-            />
-          </Field>
-          <Field label="Canvas fon rangi">
-            <ColorInput
-              value={document.background}
-              onChange={(background) => commitDocument({ ...documentRef.current, background })}
-            />
-            <div className="mt-2 grid grid-cols-6 gap-1.5">
-              {canvasBackgroundPresets.map((background) => (
-                <button
-                  key={background}
-                  type="button"
-                  title={background}
-                  aria-label={`Canvas background ${background}`}
-                  onClick={() => commitDocument({ ...documentRef.current, background })}
-                  className={cn(
-                    "h-7 rounded border border-white/15",
-                    document.background === background && "ring-2 ring-[#d3ff65]"
-                  )}
-                  style={{ background }}
-                />
-              ))}
-            </div>
-          </Field>
-          <Field label="Canvas background rasmi">
-            <label
-              className={cn(
-                "flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/15 bg-white/[0.04] px-3 py-3 text-xs text-white/60 transition hover:border-[#d6b86d]/50 hover:text-[#d6b86d]",
-                isUploadingAsset && "pointer-events-none opacity-50"
-              )}
-            >
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                className="sr-only"
-                disabled={isUploadingAsset}
-                onChange={(event) => {
-                  void uploadAsset(event.target.files?.[0], "background");
-                  event.target.value = "";
+              <LayersPanel
+                layers={editor.document.layers}
+                selected={editor.selectedLayerIds}
+                onSelect={editor.setSelectedLayerIds}
+                onChange={editor.updateLayer}
+                onMove={moveLayer}
+                onDelete={(id) => {
+                  editor.commitDocument({
+                    ...editor.documentRef.current,
+                    layers: editor.documentRef.current.layers.filter((layer) => layer.id !== id)
+                  });
+                  editor.setSelectedLayerIds((current) => current.filter((selectedId) => selectedId !== id));
                 }}
               />
-              {isUploadingAsset ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {document.backgroundImage ? "Backgroundni almashtirish" : "Background yuklash"}
-            </label>
-
-            {document.backgroundImage ? (
-              <div className="mt-3 space-y-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
-                <div className="relative h-24 overflow-hidden rounded-md border border-white/10 bg-black/20">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={document.backgroundImage.src}
-                    alt="Canvas background"
-                    className="h-full w-full"
-                    style={{
-                      objectFit: document.backgroundImage.fit,
-                      objectPosition: document.backgroundImage.position,
-                      opacity: document.backgroundImage.opacity
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Joylashuv">
-                    <select
-                      value={document.backgroundImage.position}
-                      onChange={(event) =>
-                        commitDocument({
-                          ...documentRef.current,
-                          backgroundImage: {
-                            ...document.backgroundImage!,
-                            position: event.target.value as NonNullable<TemplateDocument["backgroundImage"]>["position"]
-                          }
-                        })
-                      }
-                      className="h-9 w-full rounded-md border border-white/10 bg-white/5 px-2 text-xs text-white outline-none"
-                    >
-                      <option value="top" className="text-black">Yuqori</option>
-                      <option value="center" className="text-black">Markaz</option>
-                      <option value="bottom" className="text-black">Past</option>
-                    </select>
-                  </Field>
-                  <Field label="O'lcham">
-                    <select
-                      value={document.backgroundImage.fit}
-                      onChange={(event) =>
-                        commitDocument({
-                          ...documentRef.current,
-                          backgroundImage: {
-                            ...document.backgroundImage!,
-                            fit: event.target.value as NonNullable<TemplateDocument["backgroundImage"]>["fit"]
-                          }
-                        })
-                      }
-                      className="h-9 w-full rounded-md border border-white/10 bg-white/5 px-2 text-xs text-white outline-none"
-                    >
-                      <option value="cover" className="text-black">Cover</option>
-                      <option value="contain" className="text-black">Contain</option>
-                    </select>
-                  </Field>
-                </div>
-                <NumberField
-                  label="Background opacity"
-                  value={document.backgroundImage.opacity}
-                  onChange={(opacity) =>
-                    commitDocument({
-                      ...documentRef.current,
-                      backgroundImage: {
-                        ...document.backgroundImage!,
-                        opacity: Math.min(1, Math.max(0, opacity))
-                      }
-                    })
-                  }
-                  min={0}
-                  max={1}
-                  step={0.05}
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    commitDocument({
-                      ...documentRef.current,
-                      backgroundImage: undefined
-                    })
-                  }
-                  className="w-full rounded-md border border-red-400/20 px-3 py-2 text-xs text-red-300 transition hover:bg-red-400/10"
-                >
-                  Backgroundni olib tashlash
-                </button>
-              </div>
-            ) : null}
-          </Field>
-          {assetError ? <p className="text-xs text-red-300">{assetError}</p> : null}
-          <Button className="w-full bg-[#d3ff65] text-[#142018] hover:bg-[#c5f24f]" onClick={saveTemplate} disabled={isSaving}>
-            <Save className="h-4 w-4" />
-            {isSaving ? "Saqlanmoqda..." : "Shablonni saqlash"}
-          </Button>
-          {error ? <p className="text-sm text-red-300">{error}</p> : null}
-        </div>
-
-        {selectedLayer ? (
-          <LayerInspector
-            layer={selectedLayer}
-            onChange={(patch) => updateLayer(selectedLayer.id, patch)}
-            onDuplicate={duplicateSelected}
-            onDelete={removeSelected}
-            onMoveDown={() => moveSelected(-1)}
-            onMoveUp={() => moveSelected(1)}
-            onUploadShapeBackground={async (file) => {
-              if (selectedLayer.type !== "shape") return;
-              const asset = await uploadAsset(file, "library");
-              if (!asset) return;
-              updateLayer(selectedLayer.id, {
-                backgroundImage: {
-                  src: asset.url,
-                  fit: "cover",
-                  position: "center",
-                  opacity: 1
-                }
-              });
-            }}
-            isUploadingAsset={isUploadingAsset}
-          />
-        ) : (
-          <div className="py-12 text-center text-sm leading-6 text-white/40">
-            <Plus className="mx-auto mb-3 h-6 w-6" />
-            Sozlash uchun layer tanlang.
+            )}
           </div>
-        )}
-      </aside>
+        </aside>
+
+        <main className="relative min-h-0 overflow-auto bg-[#242b27]">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.11) 1px, transparent 0)",
+              backgroundSize: "24px 24px"
+            }}
+          />
+          <div className="relative flex min-h-full min-w-max items-center justify-center p-16">
+            <TemplateCanvas
+              document={editor.document}
+              selectedLayerIds={editor.selectedLayerIds}
+              interactive
+              permissionMode="designer"
+              snapToGrid={snapToGrid}
+              scale={zoom}
+              playbackMs={playbackMs}
+              onSelectLayers={editor.setSelectedLayerIds}
+              onChangeLayer={(id, patch) => editor.updateLayer(id, patch, true)}
+              onInteractionEnd={editor.commitCurrentInteraction}
+              onExportReady={(exporter) => {
+                exportCanvasRef.current = exporter;
+              }}
+            />
+          </div>
+          <div className="sticky bottom-28 z-20 mx-auto flex w-fit items-center gap-2 rounded-full border border-white/10 bg-[#111613]/90 px-2 py-1.5 shadow-2xl backdrop-blur">
+            <StudioIcon label="Zoom out" onClick={() => setZoom((value) => Math.max(0.18, value - 0.04))}><Minus /></StudioIcon>
+            <span className="w-12 text-center text-xs font-semibold text-white/70">{Math.round(zoom * 100)}%</span>
+            <StudioIcon label="Zoom in" onClick={() => setZoom((value) => Math.min(0.72, value + 0.04))}><Plus /></StudioIcon>
+            <button
+              type="button"
+              onClick={() => setSnapToGrid((value) => !value)}
+              className={cn("rounded-full px-3 py-1.5 text-xs font-semibold", snapToGrid ? "bg-[#d5b975] text-[#18201b]" : "text-white/50")}
+            >
+              Snap
+            </button>
+          </div>
+          <div className="sticky bottom-0 z-20">
+            <TemplateTimeline
+              document={editor.document}
+              selectedLayer={selectedLayer}
+              playbackMs={playbackMs}
+              playing={playing}
+              onPlaybackChange={(value) => {
+                setPlaybackMs(value);
+                setPlaying(false);
+              }}
+              onPlayingChange={(value) => {
+                if (value && playbackMs >= (editor.document.timeline?.durationMs ?? 6000)) setPlaybackMs(0);
+                setPlaying(value);
+              }}
+              onDocumentChange={editor.commitDocument}
+              onLayerChange={(patch) => selectedLayer && editor.updateLayer(selectedLayer.id, patch)}
+            />
+          </div>
+        </main>
+
+        <aside className="min-h-0 overflow-y-auto overscroll-contain border-l border-white/10 bg-[#f5f0e7] text-[#202520]">
+          {selectedLayer ? (
+            <LayerInspector layer={selectedLayer} onChange={(patch) => editor.updateLayer(selectedLayer.id, patch)} />
+          ) : editor.selectedLayers.length > 1 ? (
+            <MultiInspector
+              count={editor.selectedLayers.length}
+              onAlign={editor.alignSelected}
+              onDistribute={editor.distributeSelected}
+              onGroup={editor.groupSelected}
+            />
+          ) : (
+            <DocumentInspector
+              name={name}
+              description={description}
+              document={editor.document}
+              onName={setName}
+              onDescription={setDescription}
+              onChange={editor.commitDocument}
+              onUploadBackground={(file) => void uploadAsset(file, "background")}
+              isUploading={isUploading}
+            />
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function ElementsPanel({
+  addLayer,
+  addOrnament
+}: {
+  addLayer: (type: "text" | "shape" | "image") => void;
+  addOrnament: (preset: (typeof ornamentPresets)[number]) => void;
+}) {
+  return (
+    <div>
+      <SectionTitle title="Asosiy elementlar" subtitle="Canvasga yangi layer qo'shing" />
+      <div className="grid grid-cols-3 gap-2">
+        <ToolButton icon={<Type />} label="Matn" onClick={() => addLayer("text")} />
+        <ToolButton icon={<Square />} label="Shakl" onClick={() => addLayer("shape")} />
+        <ToolButton icon={<ImagePlus />} label="Rasm" onClick={() => addLayer("image")} />
+      </div>
+      <div className="mt-7">
+        <SectionTitle title="Atelier collection" subtitle="Premium wedding ornaments" />
+        <div className="grid grid-cols-2 gap-2">
+          {ornamentPresets.map((preset) => (
+            <button
+              key={preset.kind}
+              type="button"
+              onClick={() => addOrnament(preset)}
+              className="group overflow-hidden rounded-xl border border-[#d5b975]/15 bg-[#eee4d2] text-left transition hover:-translate-y-0.5 hover:border-[#d5b975]/60"
+            >
+              <div className="grid h-24 place-items-center bg-[radial-gradient(circle_at_center,#fffdf8,#e5d6ba)] p-3">
+                <TemplateOrnament kind={preset.kind} color={preset.color} secondaryColor={preset.secondaryColor} strokeWidth={1.5} />
+              </div>
+              <div className="border-t border-[#8d6d37]/10 px-2.5 py-2">
+                <p className="truncate font-['Cormorant_Garamond'] text-sm font-bold text-[#30291f]">{preset.label}</p>
+                <p className="truncate text-[8px] font-bold uppercase tracking-[0.16em] text-[#967438]">{preset.collection}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AssetsPanel({
+  assets,
+  isUploading,
+  error,
+  onUpload,
+  onAdd,
+  onDelete
+}: {
+  assets: UploadedAsset[];
+  isUploading: boolean;
+  error: string;
+  onUpload: (file?: File, target?: "library" | "layer" | "background") => void;
+  onAdd: (asset: UploadedAsset) => void;
+  onDelete: (asset: UploadedAsset) => void;
+}) {
+  return (
+    <div>
+      <SectionTitle title="Asset library" subtitle="PNG, JPG, WebP yoki SVG" />
+      <label className="flex cursor-pointer flex-col items-center rounded-xl border border-dashed border-[#d5b975]/35 bg-[#d5b975]/5 p-5 text-center hover:bg-[#d5b975]/10">
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          className="sr-only"
+          disabled={isUploading}
+          onChange={(event) => {
+            void onUpload(event.target.files?.[0], "library");
+            event.target.value = "";
+          }}
+        />
+        {isUploading ? <Loader2 className="h-5 w-5 animate-spin text-[#d5b975]" /> : <Upload className="h-5 w-5 text-[#d5b975]" />}
+        <span className="mt-2 text-xs font-semibold text-white/70">Asset yuklash</span>
+        <span className="mt-1 text-[10px] text-white/30">10 MB gacha</span>
+      </label>
+      {error ? <p className="mt-2 text-xs text-red-300">{error}</p> : null}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {assets.map((asset) => (
+          <div key={asset.id} className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/5 text-left hover:border-[#d5b975]/50">
+            <button type="button" onClick={() => onAdd(asset)} className="block w-full text-left">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={asset.url} alt="" className="h-24 w-full object-cover" />
+              <p className="truncate px-2 py-2 text-[10px] text-white/60">{asset.name}</p>
+            </button>
+            <button type="button" aria-label="Assetni o'chirish" onClick={() => void onDelete(asset)} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/65 text-white opacity-0 transition group-hover:opacity-100">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LayersPanel({
+  layers,
+  selected,
+  onSelect,
+  onChange,
+  onMove,
+  onDelete
+}: {
+  layers: TemplateLayer[];
+  selected: string[];
+  onSelect: (ids: string[]) => void;
+  onChange: (id: string, patch: Partial<TemplateLayer>) => void;
+  onMove: (id: string, direction: -1 | 1) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div>
+      <SectionTitle title="Layers" subtitle={`${layers.length} ta element`} />
+      <div className="space-y-1.5">
+        {[...layers].reverse().map((layer) => (
+          <div
+            key={layer.id}
+            className={cn(
+              "group flex items-center gap-2 rounded-lg border px-2 py-2 transition",
+              selected.includes(layer.id) ? "border-[#d5b975]/60 bg-[#d5b975]/10" : "border-white/5 bg-white/[0.025] hover:bg-white/5"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => onSelect([layer.id])}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            >
+              <LayerIcon layer={layer} />
+              <span className="truncate text-xs text-white/70">{layer.name}</span>
+            </button>
+            <MiniButton label={layer.visible ? "Hide" : "Show"} onClick={() => onChange(layer.id, { visible: !layer.visible })}>
+              {layer.visible ? <Eye /> : <EyeOff />}
+            </MiniButton>
+            <MiniButton label={layer.locked ? "Unlock" : "Lock"} onClick={() => onChange(layer.id, { locked: !layer.locked })}>
+              {layer.locked ? <Lock /> : <Unlock />}
+            </MiniButton>
+            <MiniButton label="Up" onClick={() => onMove(layer.id, 1)}><ArrowUp /></MiniButton>
+            <MiniButton label="Down" onClick={() => onMove(layer.id, -1)}><ArrowDown /></MiniButton>
+            <MiniButton label="Delete" danger onClick={() => onDelete(layer.id)}><Trash2 /></MiniButton>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 function LayerInspector({
-  layer,
-  onChange,
-  onDuplicate,
-  onDelete,
-  onMoveDown,
-  onMoveUp,
-  onUploadShapeBackground,
-  isUploadingAsset
-}: {
-  layer: TemplateLayer;
-  onChange: (patch: Partial<TemplateLayer>) => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-  onMoveDown: () => void;
-  onMoveUp: () => void;
-  onUploadShapeBackground: (file: File) => Promise<void>;
-  isUploadingAsset: boolean;
-}) {
-  return (
-    <div className="space-y-5 pt-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="font-semibold">{layer.name}</p>
-          <p className="text-xs uppercase tracking-wider text-white/40">{layer.type}</p>
-        </div>
-        <div className="flex gap-1">
-          <IconButton
-            label={layer.visible ? "Yashirish" : "Ko'rsatish"}
-            onClick={() => onChange({ visible: !layer.visible })}
-          >
-            {layer.visible ? <Eye /> : <EyeOff />}
-          </IconButton>
-          <IconButton
-            label={layer.locked ? "Qulfni ochish" : "Qulflash"}
-            onClick={() => onChange({ locked: !layer.locked })}
-          >
-            {layer.locked ? <Lock /> : <Unlock />}
-          </IconButton>
-        </div>
-      </div>
-
-      <Field label="Layer nomi">
-        <DarkInput value={layer.name} onChange={(event) => onChange({ name: event.target.value })} />
-      </Field>
-
-      <div className="grid grid-cols-2 gap-3">
-        <NumberField label="X" value={layer.x} onChange={(x) => onChange({ x })} />
-        <NumberField label="Y" value={layer.y} onChange={(y) => onChange({ y })} />
-        <NumberField label="Kenglik" value={layer.width} onChange={(width) => onChange({ width })} min={1} />
-        <NumberField label="Balandlik" value={layer.height} onChange={(height) => onChange({ height })} min={1} />
-        <NumberField label="Burilish" value={layer.rotation} onChange={(rotation) => onChange({ rotation })} />
-        <NumberField
-          label="Opacity"
-          value={layer.opacity}
-          onChange={(opacity) => onChange({ opacity })}
-          min={0}
-          max={1}
-          step={0.05}
-        />
-      </div>
-
-      <PermissionsInspector layer={layer} onChange={onChange} />
-
-      {layer.type === "text" ? <TextInspector layer={layer} onChange={onChange} /> : null}
-      {layer.type === "shape" ? (
-        <ShapeInspector
-          layer={layer}
-          onChange={onChange}
-          onUploadBackground={onUploadShapeBackground}
-          isUploading={isUploadingAsset}
-        />
-      ) : null}
-      {layer.type === "image" ? <ImageInspector layer={layer} onChange={onChange} /> : null}
-      {layer.type === "ornament" ? <OrnamentInspector layer={layer} onChange={onChange} /> : null}
-      <EffectsInspector layer={layer} onChange={onChange} />
-
-      <div className="grid grid-cols-4 gap-2 border-t border-white/10 pt-5">
-        <IconButton label="Pastga" onClick={onMoveDown}><ArrowDown /></IconButton>
-        <IconButton label="Tepaga" onClick={onMoveUp}><ArrowUp /></IconButton>
-        <IconButton label="Nusxalash" onClick={onDuplicate}><Copy /></IconButton>
-        <IconButton label="O'chirish" onClick={onDelete} danger><Trash2 /></IconButton>
-      </div>
-    </div>
-  );
-}
-
-function TextInspector({
-  layer,
-  onChange
-}: {
-  layer: TemplateTextLayer;
-  onChange: (patch: Partial<TemplateTextLayer>) => void;
-}) {
-  return (
-    <div className="space-y-4 border-t border-white/10 pt-5">
-      <Field label="Matn">
-        <Textarea
-          value={layer.text}
-          onChange={(event) => onChange({ text: event.target.value })}
-          className="border-white/10 bg-white/5 text-white"
-        />
-      </Field>
-      <Field label="Ma'lumotga bog'lash">
-        <select
-          value={layer.binding ?? ""}
-          onChange={(event) => onChange({ binding: (event.target.value || undefined) as TemplateTextLayer["binding"] })}
-          className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white outline-none"
-        >
-          <option value="" className="text-black">Bog'lanmagan</option>
-          {templateTextBindings.map((binding) => (
-            <option key={binding} value={binding} className="text-black">{binding}</option>
-          ))}
-        </select>
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <NumberField label="Font size" value={layer.fontSize} onChange={(fontSize) => onChange({ fontSize })} min={8} />
-        <NumberField label="Weight" value={layer.fontWeight} onChange={(fontWeight) => onChange({ fontWeight })} min={100} max={900} step={100} />
-      </div>
-      <Field label="Font">
-        <select
-          value={layer.fontFamily}
-          onChange={(event) => onChange({ fontFamily: event.target.value })}
-          className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white outline-none"
-        >
-          {fontFamilies.map((font) => (
-            <option key={font} value={font} className="text-black" style={{ fontFamily: font }}>
-              {font}
-            </option>
-          ))}
-        </select>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {fontFamilies.slice(0, 6).map((font) => (
-            <button
-              key={font}
-              type="button"
-              onClick={() => onChange({ fontFamily: font })}
-              className={cn(
-                "truncate rounded-md border px-2 py-2 text-sm transition",
-                layer.fontFamily === font
-                  ? "border-[#d3ff65]/60 bg-[#d3ff65]/15 text-[#d3ff65]"
-                  : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/10"
-              )}
-              style={{ fontFamily: font }}
-            >
-              Aa {font}
-            </button>
-          ))}
-        </div>
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <NumberField
-          label="Line height"
-          value={layer.lineHeight}
-          onChange={(lineHeight) => onChange({ lineHeight })}
-          min={0.5}
-          step={0.05}
-        />
-        <NumberField
-          label="Letter spacing"
-          value={layer.letterSpacing}
-          onChange={(letterSpacing) => onChange({ letterSpacing })}
-          step={1}
-        />
-      </div>
-      <Field label="Tekislash">
-        <div className="grid grid-cols-3 gap-2">
-          <IconButton label="Chap" onClick={() => onChange({ align: "left" })} active={layer.align === "left"}>
-            <AlignLeft />
-          </IconButton>
-          <IconButton label="Markaz" onClick={() => onChange({ align: "center" })} active={layer.align === "center"}>
-            <AlignCenter />
-          </IconButton>
-          <IconButton label="O'ng" onClick={() => onChange({ align: "right" })} active={layer.align === "right"}>
-            <AlignRight />
-          </IconButton>
-        </div>
-      </Field>
-      <Field label="Rang">
-        <ColorInput value={layer.color} onChange={(color) => onChange({ color })} />
-      </Field>
-    </div>
-  );
-}
-
-function ShapeInspector({
-  layer,
-  onChange,
-  onUploadBackground,
-  isUploading
-}: {
-  layer: TemplateShapeLayer;
-  onChange: (patch: Partial<TemplateShapeLayer>) => void;
-  onUploadBackground: (file: File) => Promise<void>;
-  isUploading: boolean;
-}) {
-  return (
-    <div className="space-y-4 border-t border-white/10 pt-5">
-      <Field label="Fon rangi">
-        <ColorInput value={layer.fill} onChange={(fill) => onChange({ fill })} />
-      </Field>
-      <Field label="Premium gradientlar">
-        <div className="grid grid-cols-4 gap-2">
-          {gradientPresets.map((fill) => (
-            <button
-              key={fill}
-              type="button"
-              title={fill}
-              aria-label="Gradient tanlash"
-              onClick={() => onChange({ fill })}
-              className={cn(
-                "h-12 rounded-md border border-white/15 transition hover:scale-105",
-                layer.fill === fill && "ring-2 ring-[#d3ff65]"
-              )}
-              style={{ background: fill }}
-            />
-          ))}
-        </div>
-      </Field>
-      <Field label="Chegara rangi">
-        <ColorInput value={layer.stroke} onChange={(stroke) => onChange({ stroke })} />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <NumberField label="Chegara" value={layer.strokeWidth} onChange={(strokeWidth) => onChange({ strokeWidth })} min={0} />
-        <NumberField label="Radius" value={layer.radius} onChange={(radius) => onChange({ radius })} min={0} />
-      </div>
-      <Field label="Panel background rasmi">
-        <label
-          className={cn(
-            "flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/15 bg-white/[0.04] px-3 py-3 text-xs text-white/60 transition hover:border-[#d6b86d]/50 hover:text-[#d6b86d]",
-            isUploading && "pointer-events-none opacity-50"
-          )}
-        >
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-            className="sr-only"
-            disabled={isUploading}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void onUploadBackground(file);
-              event.target.value = "";
-            }}
-          />
-          {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          {layer.backgroundImage ? "Panel rasmini almashtirish" : "Panelga rasm yuklash"}
-        </label>
-      </Field>
-      {layer.backgroundImage ? (
-        <div className="space-y-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
-          <div className="relative h-24 overflow-hidden rounded-md border border-white/10 bg-black/20">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={layer.backgroundImage.src}
-              alt="Panel background"
-              className="h-full w-full"
-              style={{
-                objectFit: layer.backgroundImage.fit,
-                objectPosition: layer.backgroundImage.position,
-                opacity: layer.backgroundImage.opacity
-              }}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Joylashuv">
-              <select
-                value={layer.backgroundImage.position}
-                onChange={(event) =>
-                  onChange({
-                    backgroundImage: {
-                      ...layer.backgroundImage!,
-                      position: event.target.value as NonNullable<TemplateShapeLayer["backgroundImage"]>["position"]
-                    }
-                  })
-                }
-                className="h-9 w-full rounded-md border border-white/10 bg-white/5 px-2 text-xs text-white outline-none"
-              >
-                <option value="top" className="text-black">Yuqori</option>
-                <option value="center" className="text-black">Markaz</option>
-                <option value="bottom" className="text-black">Past</option>
-              </select>
-            </Field>
-            <Field label="O'lcham">
-              <select
-                value={layer.backgroundImage.fit}
-                onChange={(event) =>
-                  onChange({
-                    backgroundImage: {
-                      ...layer.backgroundImage!,
-                      fit: event.target.value as NonNullable<TemplateShapeLayer["backgroundImage"]>["fit"]
-                    }
-                  })
-                }
-                className="h-9 w-full rounded-md border border-white/10 bg-white/5 px-2 text-xs text-white outline-none"
-              >
-                <option value="cover" className="text-black">Cover</option>
-                <option value="contain" className="text-black">Contain</option>
-              </select>
-            </Field>
-          </div>
-          <NumberField
-            label="Rasm opacity"
-            value={layer.backgroundImage.opacity}
-            onChange={(opacity) =>
-              onChange({
-                backgroundImage: {
-                  ...layer.backgroundImage!,
-                  opacity: Math.min(1, Math.max(0, opacity))
-                }
-              })
-            }
-            min={0}
-            max={1}
-            step={0.05}
-          />
-          <button
-            type="button"
-            onClick={() => onChange({ backgroundImage: undefined })}
-            className="w-full rounded-md border border-red-400/20 px-3 py-2 text-xs text-red-300 transition hover:bg-red-400/10"
-          >
-            Panel rasmini olib tashlash
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function ImageInspector({
-  layer,
-  onChange
-}: {
-  layer: TemplateImageLayer;
-  onChange: (patch: Partial<TemplateImageLayer>) => void;
-}) {
-  return (
-    <div className="space-y-4 border-t border-white/10 pt-5">
-      <Field label="Rasm URL">
-        <DarkInput value={layer.src} onChange={(event) => onChange({ src: event.target.value })} />
-      </Field>
-      <label className="flex items-center gap-2 text-sm text-white/70">
-        <input
-          type="checkbox"
-          checked={layer.binding === "coverImageUrl"}
-          onChange={(event) => onChange({ binding: event.target.checked ? "coverImageUrl" : undefined })}
-        />
-        User rasmi bilan almashtirish
-      </label>
-      <Field label="Rasm joylashuvi">
-        <select
-          value={layer.fit}
-          onChange={(event) => onChange({ fit: event.target.value as TemplateImageLayer["fit"] })}
-          className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white outline-none"
-        >
-          <option value="cover" className="text-black">Cover</option>
-          <option value="contain" className="text-black">Contain</option>
-        </select>
-      </Field>
-      <NumberField label="Radius" value={layer.radius} onChange={(radius) => onChange({ radius })} min={0} />
-    </div>
-  );
-}
-
-function OrnamentInspector({
-  layer,
-  onChange
-}: {
-  layer: TemplateOrnamentLayer;
-  onChange: (patch: Partial<TemplateOrnamentLayer>) => void;
-}) {
-  return (
-    <div className="space-y-4 border-t border-white/10 pt-5">
-      <Field label="Ornament turi">
-        <select
-          value={layer.ornament}
-          onChange={(event) => onChange({ ornament: event.target.value as OrnamentKind })}
-          className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white outline-none"
-        >
-          {ornamentPresets.map((preset) => (
-            <option key={preset.kind} value={preset.kind} className="text-black">
-              {preset.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Asosiy rang">
-          <ColorInput value={layer.color} onChange={(color) => onChange({ color })} />
-        </Field>
-        <Field label="Ikkinchi rang">
-          <ColorInput
-            value={layer.secondaryColor}
-            onChange={(secondaryColor) => onChange({ secondaryColor })}
-          />
-        </Field>
-      </div>
-      <NumberField
-        label="Chiziq qalinligi"
-        value={layer.strokeWidth}
-        onChange={(strokeWidth) => onChange({ strokeWidth })}
-        min={0.5}
-        step={0.5}
-      />
-    </div>
-  );
-}
-
-function EffectsInspector({
-  layer,
-  onChange
-}: {
-  layer: TemplateLayer;
-  onChange: (patch: Partial<TemplateLayer>) => void;
-}) {
-  const setShadowPreset = (preset: "none" | "soft" | "gold") => {
-    if (preset === "none") {
-      onChange({ shadow: undefined });
-      return;
-    }
-    onChange({
-      shadow:
-        preset === "soft"
-          ? { color: "rgba(24, 30, 26, 0.28)", blur: 24, x: 0, y: 12 }
-          : { color: "rgba(191, 145, 54, 0.55)", blur: 30, x: 0, y: 6 }
-    });
-  };
-
-  return (
-    <div className="space-y-4 border-t border-white/10 pt-5">
-      <div className="flex items-center gap-2">
-        <Palette className="h-4 w-4 text-[#d3ff65]" />
-        <p className="text-xs font-semibold text-white/70">Effects</p>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <PresetButton label="Yo'q" active={!layer.shadow} onClick={() => setShadowPreset("none")} />
-        <PresetButton label="Soft" active={layer.shadow?.blur === 24} onClick={() => setShadowPreset("soft")} />
-        <PresetButton label="Gold" active={layer.shadow?.blur === 30} onClick={() => setShadowPreset("gold")} />
-      </div>
-      <NumberField
-        label="Blur"
-        value={layer.blur ?? 0}
-        onChange={(blur) => onChange({ blur: Math.max(0, blur) })}
-        min={0}
-        max={40}
-      />
-      {layer.shadow ? (
-        <>
-          <Field label="Shadow rang">
-            <ColorInput
-              value={layer.shadow.color}
-              onChange={(color) => onChange({ shadow: { ...layer.shadow!, color } })}
-            />
-          </Field>
-          <div className="grid grid-cols-3 gap-2">
-            <NumberField
-              label="X"
-              value={layer.shadow.x}
-              onChange={(x) => onChange({ shadow: { ...layer.shadow!, x } })}
-            />
-            <NumberField
-              label="Y"
-              value={layer.shadow.y}
-              onChange={(y) => onChange({ shadow: { ...layer.shadow!, y } })}
-            />
-            <NumberField
-              label="Softness"
-              value={layer.shadow.blur}
-              onChange={(blur) => onChange({ shadow: { ...layer.shadow!, blur: Math.max(0, blur) } })}
-              min={0}
-            />
-          </div>
-        </>
-      ) : null}
-    </div>
-  );
-}
-
-function PermissionsInspector({
   layer,
   onChange
 }: {
@@ -1316,174 +655,295 @@ function PermissionsInspector({
   onChange: (patch: Partial<TemplateLayer>) => void;
 }) {
   const permissions = getLayerPermissions(layer);
-  const options: Array<{ key: keyof typeof permissions; label: string }> = [
-    { key: "editable", label: "Kontentni edit qilish" },
-    { key: "movable", label: "Joyini surish" },
-    { key: "resizable", label: "O'lchamini o'zgartirish" },
-    { key: "rotatable", label: "Aylantirish" },
-    { key: "styleEditable", label: "Stilni o'zgartirish" },
-    { key: "deletable", label: "O'chirish" }
-  ];
-
   return (
-    <div className="space-y-3 border-t border-white/10 pt-5">
+    <div className="space-y-6 p-5">
       <div>
-        <p className="text-xs font-semibold text-white/70">User ruxsatlari</p>
-        <p className="mt-1 text-xs leading-5 text-white/35">Taklifnoma egasi shu layer bilan nima qila oladi.</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#937440]">Selected layer</p>
+        <Input className="mt-2 border-[#d9cdb9] bg-white font-semibold" value={layer.name} onChange={(event) => onChange({ name: event.target.value })} />
       </div>
-      <div className="grid gap-2">
-        {options.map((option) => (
-          <label
-            key={option.key}
-            className="flex cursor-pointer items-center justify-between rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/65"
-          >
-            <span>{option.label}</span>
-            <input
-              type="checkbox"
-              checked={permissions[option.key]}
-              onChange={(event) =>
-                onChange({
-                  permissions: {
-                    ...permissions,
-                    [option.key]: event.target.checked
-                  }
-                })
-              }
-            />
-          </label>
+
+      <InspectorSection title="Position & size">
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label="X" value={layer.x} onChange={(x) => onChange({ x })} />
+          <NumberField label="Y" value={layer.y} onChange={(y) => onChange({ y })} />
+          <NumberField label="Width" value={layer.width} min={20} onChange={(width) => onChange({ width })} />
+          <NumberField label="Height" value={layer.height} min={20} onChange={(height) => onChange({ height })} />
+          <NumberField label="Rotation" value={layer.rotation} onChange={(rotation) => onChange({ rotation })} />
+          <NumberField label="Opacity %" value={Math.round(layer.opacity * 100)} min={0} max={100} onChange={(opacity) => onChange({ opacity: opacity / 100 })} />
+        </div>
+      </InspectorSection>
+
+      {layer.type === "text" ? <TextInspector layer={layer} onChange={onChange} /> : null}
+      {layer.type === "shape" ? <ShapeInspector layer={layer} onChange={onChange} /> : null}
+      {layer.type === "image" ? <ImageInspector layer={layer} onChange={onChange} /> : null}
+      {layer.type === "ornament" ? <OrnamentInspector layer={layer} onChange={onChange} /> : null}
+
+      <InspectorSection title="User permissions">
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            ["editable", "Content"],
+            ["styleEditable", "Style"],
+            ["movable", "Move"],
+            ["resizable", "Resize"],
+            ["rotatable", "Rotate"],
+            ["cropEditable", "Crop"],
+            ["deletable", "Delete"]
+          ] as const).map(([key, label]) => (
+            <label key={key} className="flex items-center gap-2 rounded-lg border border-[#ded4c4] bg-white px-3 py-2 text-xs font-medium">
+              <input
+                type="checkbox"
+                checked={Boolean(permissions[key])}
+                onChange={(event) => onChange({ permissions: { ...permissions, [key]: event.target.checked } })}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </InspectorSection>
+    </div>
+  );
+}
+
+function TextInspector({ layer, onChange }: { layer: TemplateTextLayer; onChange: (patch: Partial<TemplateTextLayer>) => void }) {
+  return (
+    <InspectorSection title="Typography">
+      <Label>Matn</Label>
+      <Textarea className="mt-2 bg-white" value={layer.text} onChange={(event) => onChange({ text: event.target.value })} />
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <ColorField label="Rang" value={layer.color} onChange={(color) => onChange({ color })} />
+        <NumberField label="Font size" value={layer.fontSize} min={8} onChange={(fontSize) => onChange({ fontSize })} />
+      </div>
+      <Label className="mt-3 block">Font</Label>
+      <select value={layer.fontFamily} onChange={(event) => onChange({ fontFamily: event.target.value })} className="mt-2 h-10 w-full rounded-md border border-[#d9cdb9] bg-white px-3 text-sm">
+        {fonts.map((font) => <option key={font}>{font}</option>)}
+      </select>
+      <Label className="mt-3 block">Data binding</Label>
+      <select value={layer.binding ?? ""} onChange={(event) => onChange({ binding: event.target.value ? event.target.value as TemplateTextLayer["binding"] : undefined })} className="mt-2 h-10 w-full rounded-md border border-[#d9cdb9] bg-white px-3 text-sm">
+        <option value="">Static matn</option>
+        {templateTextBindings.map((binding) => <option key={binding} value={binding}>{binding}</option>)}
+      </select>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {(["left", "center", "right"] as const).map((align) => (
+          <button key={align} type="button" onClick={() => onChange({ align })} className={cn("grid h-9 place-items-center rounded-md border", layer.align === align ? "border-[#98763e] bg-[#eaddc5]" : "border-[#ded4c4] bg-white")}>
+            {align === "left" ? <AlignLeft className="h-4 w-4" /> : align === "center" ? <AlignCenter className="h-4 w-4" /> : <AlignRight className="h-4 w-4" />}
+          </button>
         ))}
       </div>
+    </InspectorSection>
+  );
+}
+
+function ShapeInspector({ layer, onChange }: { layer: TemplateShapeLayer; onChange: (patch: Partial<TemplateShapeLayer>) => void }) {
+  return (
+    <InspectorSection title="Shape style">
+      <div className="grid grid-cols-2 gap-3">
+        <ColorField label="Fill" value={layer.fill.startsWith("#") ? layer.fill : "#e8dcc5"} onChange={(fill) => onChange({ fill })} />
+        <ColorField label="Stroke" value={layer.stroke || "#000000"} onChange={(stroke) => onChange({ stroke })} />
+        <NumberField label="Stroke width" value={layer.strokeWidth} min={0} onChange={(strokeWidth) => onChange({ strokeWidth })} />
+        <NumberField label="Radius" value={layer.radius} min={0} onChange={(radius) => onChange({ radius })} />
+      </div>
+    </InspectorSection>
+  );
+}
+
+function ImageInspector({ layer, onChange }: { layer: TemplateImageLayer; onChange: (patch: Partial<TemplateImageLayer>) => void }) {
+  return (
+    <InspectorSection title="Image slot">
+      <Label>Image URL</Label>
+      <Input className="mt-2 bg-white" value={layer.src} onChange={(event) => onChange({ src: event.target.value })} />
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <NumberField label="Radius" value={layer.radius} min={0} onChange={(radius) => onChange({ radius })} />
+        <div>
+          <Label>Fit</Label>
+          <select value={layer.fit} onChange={(event) => onChange({ fit: event.target.value as "cover" | "contain" })} className="mt-2 h-10 w-full rounded-md border border-[#d9cdb9] bg-white px-3 text-sm">
+            <option value="cover">Cover</option>
+            <option value="contain">Contain</option>
+          </select>
+        </div>
+      </div>
+      <label className="mt-3 flex items-center gap-2 rounded-lg border border-[#ded4c4] bg-white px-3 py-2 text-xs">
+        <input type="checkbox" checked={layer.binding === "coverImageUrl"} onChange={(event) => onChange({ binding: event.target.checked ? "coverImageUrl" : undefined })} />
+        User rasmi uchun slot
+      </label>
+    </InspectorSection>
+  );
+}
+
+function OrnamentInspector({ layer, onChange }: { layer: TemplateOrnamentLayer; onChange: (patch: Partial<TemplateOrnamentLayer>) => void }) {
+  return (
+    <InspectorSection title="Ornament">
+      <div className="grid grid-cols-2 gap-3">
+        <ColorField label="Asosiy rang" value={layer.color} onChange={(color) => onChange({ color })} />
+        <ColorField label="Ikkinchi rang" value={layer.secondaryColor} onChange={(secondaryColor) => onChange({ secondaryColor })} />
+        <NumberField label="Stroke" value={layer.strokeWidth} min={0.5} onChange={(strokeWidth) => onChange({ strokeWidth })} />
+      </div>
+    </InspectorSection>
+  );
+}
+
+function MultiInspector({
+  count,
+  onAlign,
+  onDistribute,
+  onGroup
+}: {
+  count: number;
+  onAlign: (mode: "left" | "center" | "right" | "top" | "middle" | "bottom") => void;
+  onDistribute: (axis: "horizontal" | "vertical") => void;
+  onGroup: () => void;
+}) {
+  return (
+    <div className="space-y-6 p-5">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#937440]">Multi selection</p>
+        <h2 className="mt-1 font-['Cormorant_Garamond'] text-2xl font-bold">{count} layer tanlandi</h2>
+      </div>
+      <InspectorSection title="Align">
+        <div className="grid grid-cols-3 gap-2">
+          {(["left", "center", "right", "top", "middle", "bottom"] as const).map((mode) => (
+            <Button key={mode} type="button" variant="outline" size="sm" onClick={() => onAlign(mode)}>{mode}</Button>
+          ))}
+        </div>
+      </InspectorSection>
+      <InspectorSection title="Distribute">
+        <div className="grid grid-cols-2 gap-2">
+          <Button type="button" variant="outline" onClick={() => onDistribute("horizontal")}><AlignHorizontalDistributeCenter className="h-4 w-4" /> Horizontal</Button>
+          <Button type="button" variant="outline" onClick={() => onDistribute("vertical")}><AlignVerticalDistributeCenter className="h-4 w-4" /> Vertical</Button>
+        </div>
+      </InspectorSection>
+      <Button type="button" className="w-full" onClick={onGroup}><Group className="h-4 w-4" /> Group</Button>
+    </div>
+  );
+}
+
+function DocumentInspector({
+  name,
+  description,
+  document,
+  onName,
+  onDescription,
+  onChange,
+  onUploadBackground,
+  isUploading
+}: {
+  name: string;
+  description: string;
+  document: ReturnType<typeof cloneStarterTemplateDocument>;
+  onName: (value: string) => void;
+  onDescription: (value: string) => void;
+  onChange: (document: ReturnType<typeof cloneStarterTemplateDocument>) => void;
+  onUploadBackground: (file?: File) => void;
+  isUploading: boolean;
+}) {
+  return (
+    <div className="space-y-6 p-5">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#937440]">Document</p>
+        <h2 className="mt-1 font-['Cormorant_Garamond'] text-2xl font-bold">Template settings</h2>
+      </div>
+      <InspectorSection title="Information">
+        <Label>Nomi</Label>
+        <Input className="mt-2 bg-white" value={name} onChange={(event) => onName(event.target.value)} />
+        <Label className="mt-3 block">Tavsif</Label>
+        <Textarea className="mt-2 bg-white" value={description} onChange={(event) => onDescription(event.target.value)} />
+      </InspectorSection>
+      <InspectorSection title="Canvas">
+        <ColorField label="Fon rangi" value={document.background.startsWith("#") ? document.background : "#fffaf2"} onChange={(background) => onChange({ ...document, background })} />
+        <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#bda77d] bg-white px-3 py-4 text-xs font-semibold">
+          <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => onUploadBackground(event.target.files?.[0])} />
+          {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          Background yuklash
+        </label>
+        {document.backgroundImage ? (
+          <Button type="button" variant="outline" className="mt-2 w-full" onClick={() => onChange({ ...document, backgroundImage: undefined })}>
+            Backgroundni olib tashlash
+          </Button>
+        ) : null}
+      </InspectorSection>
+      <div className="rounded-xl border border-[#d8c7a5] bg-[#eee3cf] p-4 text-xs leading-5 text-[#6e5933]">
+        <MousePointer2 className="mb-2 h-4 w-4" />
+        Shift bilan bir nechta layer tanlang. Arrow bilan 1px, Shift+Arrow bilan 10px suring.
+      </div>
+    </div>
+  );
+}
+
+function InspectorSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-[#ded4c4] pt-4 first:border-0 first:pt-0">
+      <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-[#786849]">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="mb-3">
+      <h3 className="font-['Cormorant_Garamond'] text-lg font-bold text-white">{title}</h3>
+      <p className="text-[10px] text-white/30">{subtitle}</p>
     </div>
   );
 }
 
 function ToolButton({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-3 text-xs text-white/65 transition hover:border-[#d3ff65]/50 hover:bg-[#d3ff65]/10 hover:text-[#d3ff65]"
-    >
-      <span className="[&>svg]:h-5 [&>svg]:w-5">{icon}</span>
+    <button type="button" onClick={onClick} className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-2 py-3 text-[10px] text-white/55 transition hover:border-[#d5b975]/50 hover:bg-[#d5b975]/10 hover:text-white">
+      <span className="[&>svg]:h-4 [&>svg]:w-4">{icon}</span>
       {label}
     </button>
   );
 }
 
-function LayerIcon({ type }: { type: TemplateLayer["type"] }) {
-  if (type === "text") return <Type className="h-4 w-4" />;
-  if (type === "image") return <ImagePlus className="h-4 w-4" />;
-  if (type === "ornament") return <Flower2 className="h-4 w-4" />;
-  return <Square className="h-4 w-4" />;
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function StudioIcon({ label, children, onClick, disabled }: { label: string; children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <div>
-      <Label className="text-xs font-semibold text-white/55">{label}</Label>
-      <div className="mt-1.5">{children}</div>
-    </div>
-  );
-}
-
-function DarkInput(props: React.ComponentProps<typeof Input>) {
-  return <Input {...props} className={cn("border-white/10 bg-white/5 text-white placeholder:text-white/30", props.className)} />;
-}
-
-function NumberField({
-  label,
-  value,
-  onChange,
-  ...props
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-} & Pick<React.InputHTMLAttributes<HTMLInputElement>, "min" | "max" | "step">) {
-  return (
-    <Field label={label}>
-      <DarkInput
-        type="number"
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        {...props}
-      />
-    </Field>
-  );
-}
-
-function ColorInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return (
-    <div className="flex gap-2">
-      <input
-        type="color"
-        value={normalizeColor(value)}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-11 rounded-md border border-white/10 bg-transparent p-1"
-      />
-      <DarkInput value={value} onChange={(event) => onChange(event.target.value)} />
-    </div>
-  );
-}
-
-function PresetButton({
-  label,
-  active,
-  onClick
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-md border px-2 py-2 text-xs transition",
-        active
-          ? "border-[#d3ff65]/60 bg-[#d3ff65]/15 text-[#d3ff65]"
-          : "border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/10"
-      )}
-    >
-      {label}
-    </button>
-  );
-}
-
-function normalizeColor(value: string) {
-  return /^#[0-9a-f]{6}$/i.test(value) ? value : "#ffffff";
-}
-
-function IconButton({
-  label,
-  children,
-  onClick,
-  danger = false,
-  active = false,
-  disabled = false
-}: {
-  label: string;
-  children: React.ReactNode;
-  onClick: () => void;
-  danger?: boolean;
-  active?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "flex h-9 items-center justify-center rounded-md border border-white/10 bg-white/5 px-2.5 text-white/60 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25 [&>svg]:h-4 [&>svg]:w-4",
-        active && "border-[#d3ff65]/50 bg-[#d3ff65]/15 text-[#d3ff65]",
-        danger && "hover:border-red-400/40 hover:bg-red-400/10 hover:text-red-300"
-      )}
-    >
+    <button type="button" aria-label={label} title={label} disabled={disabled} onClick={onClick} className="grid h-9 w-9 place-items-center rounded-lg text-white/55 transition hover:bg-white/10 hover:text-white disabled:opacity-20 [&>svg]:h-4 [&>svg]:w-4">
       {children}
     </button>
   );
+}
+
+function MiniButton({ label, children, onClick, danger }: { label: string; children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+  return (
+    <button type="button" aria-label={label} title={label} onClick={onClick} className={cn("grid h-6 w-6 shrink-0 place-items-center rounded text-white/30 opacity-0 transition group-hover:opacity-100 hover:bg-white/10 hover:text-white [&>svg]:h-3 [&>svg]:w-3", danger && "hover:bg-red-500/15 hover:text-red-300")}>
+      {children}
+    </button>
+  );
+}
+
+function Tab({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[9px] font-semibold", active ? "bg-[#d5b975]/12 text-[#e3c984]" : "text-white/35 hover:text-white/65")}>
+      <span className="[&>svg]:h-4 [&>svg]:w-4">{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min?: number; max?: number; onChange: (value: number) => void }) {
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <Input className="mt-1.5 bg-white" type="number" value={Number.isFinite(value) ? Math.round(value * 100) / 100 : 0} min={min} max={max} onChange={(event) => onChange(Number(event.target.value))} />
+    </div>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <div className="mt-1.5 flex h-10 items-center gap-2 rounded-md border border-[#d9cdb9] bg-white px-2">
+        <input type="color" value={value} onChange={(event) => onChange(event.target.value)} className="h-6 w-7 cursor-pointer border-0 bg-transparent p-0" />
+        <input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs outline-none" />
+      </div>
+    </div>
+  );
+}
+
+function LayerIcon({ layer }: { layer: TemplateLayer }) {
+  if (layer.type === "text") return <Type className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
+  if (layer.type === "image") return <ImagePlus className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
+  if (layer.type === "ornament") return <Flower2 className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
+  return <Square className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
 }

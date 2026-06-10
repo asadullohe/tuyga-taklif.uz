@@ -25,7 +25,7 @@ type StorageFile = {
 
 async function requireAdminApi() {
   const user = await getCurrentUser();
-  return user?.role === "admin";
+  return user?.role === "admin" ? user : null;
 }
 
 async function getStorage() {
@@ -62,7 +62,8 @@ function toAsset(
 }
 
 export async function GET() {
-  if (!(await requireAdminApi())) {
+  const user = await requireAdminApi();
+  if (!user) {
     return NextResponse.json({ message: "Admin access required" }, { status: 403 });
   }
 
@@ -78,8 +79,26 @@ export async function GET() {
     });
     if (error) throw error;
 
+    const files = (data ?? []).filter((file) => file.name !== ".emptyFolderPlaceholder");
+    const fallbackAssets = files.map((file) => toAsset(supabase, file));
+    const { data: metadata, error: metadataError } = await supabase
+      .from("template_assets")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (metadataError?.code === "42P01") return NextResponse.json({ assets: fallbackAssets });
+    if (metadataError) throw metadataError;
+
+    const metadataByPath = new Map((metadata ?? []).map((row) => [row.storage_path, row]));
     return NextResponse.json({
-      assets: (data ?? []).filter((file) => file.name !== ".emptyFolderPlaceholder").map((file) => toAsset(supabase, file))
+      assets: fallbackAssets.map((asset) => {
+        const row = metadataByPath.get(asset.id);
+        return {
+          ...asset,
+          name: row?.name ?? asset.name,
+          category: row?.category ?? "image",
+          tags: row?.tags ?? []
+        };
+      })
     });
   } catch (error) {
     return NextResponse.json(
@@ -90,13 +109,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await requireAdminApi())) {
+  const user = await requireAdminApi();
+  if (!user) {
     return NextResponse.json({ message: "Admin access required" }, { status: 403 });
   }
 
   try {
     const formData = await request.formData();
     const file = formData.get("file");
+    const category = String(formData.get("category") ?? "image").slice(0, 32);
     if (!(file instanceof File)) {
       return NextResponse.json({ message: "Fayl topilmadi" }, { status: 400 });
     }
@@ -138,6 +159,17 @@ export async function POST(request: Request) {
     });
     if (error) throw error;
 
+    const { error: metadataError } = await supabase.from("template_assets").insert({
+      storage_path: data.path,
+      name: file.name,
+      category,
+      tags: [],
+      mime_type: file.type,
+      size_bytes: file.size,
+      created_by: user.id
+    });
+    if (metadataError && metadataError.code !== "42P01") throw metadataError;
+
     return NextResponse.json(
       {
         asset: toAsset(supabase, {
@@ -151,6 +183,33 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : "Asset yuklanmadi" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  const user = await requireAdminApi();
+  if (!user) {
+    return NextResponse.json({ message: "Admin access required" }, { status: 403 });
+  }
+
+  const path = new URL(request.url).searchParams.get("path");
+  if (!path?.startsWith(`${folderName}/`) || path.includes("..")) {
+    return NextResponse.json({ message: "Asset path noto'g'ri" }, { status: 400 });
+  }
+
+  try {
+    const supabase = await getStorage();
+    if (!supabase) return NextResponse.json({ message: "Supabase Storage sozlanmagan" }, { status: 503 });
+    const { error } = await supabase.storage.from(bucketName).remove([path]);
+    if (error) throw error;
+    const { error: metadataError } = await supabase.from("template_assets").delete().eq("storage_path", path);
+    if (metadataError && metadataError.code !== "42P01") throw metadataError;
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "Asset o'chirilmadi" },
       { status: 500 }
     );
   }

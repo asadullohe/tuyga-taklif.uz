@@ -26,9 +26,30 @@ create table public.templates (
   preview_image_url text,
   template_schema jsonb not null,
   design_document jsonb,
+  revision integer not null default 1,
   status public.template_status not null default 'active',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+create table public.template_revisions (
+  id uuid primary key default gen_random_uuid(),
+  template_id text not null references public.templates(id) on delete cascade,
+  revision integer not null,
+  design_document jsonb not null,
+  created_at timestamptz not null default now(),
+  unique (template_id, revision)
+);
+
+create table public.template_assets (
+  storage_path text primary key,
+  name text not null,
+  category text not null default 'image',
+  tags text[] not null default '{}',
+  mime_type text not null,
+  size_bytes bigint not null default 0,
+  created_by uuid references public.users(id) on delete set null,
+  created_at timestamptz not null default now()
 );
 
 create table public.invitations (
@@ -67,6 +88,8 @@ create table public.analytics_events (
 
 alter table public.users enable row level security;
 alter table public.templates enable row level security;
+alter table public.template_revisions enable row level security;
+alter table public.template_assets enable row level security;
 alter table public.invitations enable row level security;
 alter table public.rsvps enable row level security;
 alter table public.analytics_events enable row level security;
