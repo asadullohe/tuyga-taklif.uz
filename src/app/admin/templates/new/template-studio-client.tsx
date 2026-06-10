@@ -498,7 +498,7 @@ export function TemplateStudioClient({ initialTemplate }: TemplateStudioClientPr
               }}
             />
           </div>
-          <div className="sticky bottom-28 z-20 mx-auto flex w-fit items-center gap-2 rounded-full border border-white/10 bg-[#111613]/90 px-2 py-1.5 shadow-2xl backdrop-blur">
+          <div className="sticky bottom-[330px] z-20 mx-auto flex w-fit items-center gap-2 rounded-full border border-white/10 bg-[#111613]/90 px-2 py-1.5 shadow-2xl backdrop-blur">
             <StudioIcon label="Zoom out" onClick={() => setZoom((value) => Math.max(0.18, value - 0.04))}><Minus /></StudioIcon>
             <span className="w-12 text-center text-xs font-semibold text-white/70">{Math.round(zoom * 100)}%</span>
             <StudioIcon label="Zoom in" onClick={() => setZoom((value) => Math.min(0.72, value + 0.04))}><Plus /></StudioIcon>
@@ -526,6 +526,9 @@ export function TemplateStudioClient({ initialTemplate }: TemplateStudioClientPr
               }}
               onDocumentChange={editor.commitDocument}
               onLayerChange={(patch) => selectedLayer && editor.updateLayer(selectedLayer.id, patch)}
+              onSelectLayer={(id) => editor.setSelectedLayerIds([id])}
+              onTimelineLayerChange={editor.updateLayer}
+              onTimelineInteractionEnd={editor.commitCurrentInteraction}
             />
           </div>
         </main>

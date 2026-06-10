@@ -310,7 +310,8 @@ export function normalizeTemplateDocument(document: TemplateDocument): TemplateD
           exitDurationMs: layer.motion?.exitDurationMs ?? 500,
           easing: layer.motion?.easing ?? "ease-out",
           enter: layer.motion?.enter ?? "none",
-          exit: layer.motion?.exit ?? "none"
+          exit: layer.motion?.exit ?? "none",
+          textEffect: layer.motion?.textEffect ?? "none"
         }
       };
     })

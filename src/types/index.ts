@@ -50,6 +50,7 @@ export type TemplateLayerMotion = {
   easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
   enter: "none" | "fade" | "rise" | "slide-left" | "slide-right" | "zoom";
   exit: "none" | "fade" | "rise" | "slide-left" | "slide-right" | "zoom";
+  textEffect: "none" | "typewriter" | "word-reveal" | "letter-reveal" | "tracking" | "wipe";
 };
 
 export type TemplateLayerBase = {

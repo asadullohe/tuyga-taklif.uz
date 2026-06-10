@@ -31,7 +31,10 @@ const layerBaseSchema = z.object({
       exitDurationMs: z.number().min(0).default(500),
       easing: z.enum(["linear", "ease-in", "ease-out", "ease-in-out"]),
       enter: z.enum(["none", "fade", "rise", "slide-left", "slide-right", "zoom"]),
-      exit: z.enum(["none", "fade", "rise", "slide-left", "slide-right", "zoom"]).default("none")
+      exit: z.enum(["none", "fade", "rise", "slide-left", "slide-right", "zoom"]).default("none"),
+      textEffect: z
+        .enum(["none", "typewriter", "word-reveal", "letter-reveal", "tracking", "wipe"])
+        .default("none")
     })
     .optional(),
   shadow: z

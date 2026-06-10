@@ -23,6 +23,7 @@ import type {
   TemplateLayer,
   TemplateOrnamentLayer,
   TemplateShapeLayer,
+  TemplateTextLayer,
   WeddingFormData
 } from "@/types";
 import { cn } from "@/lib/utils";
@@ -405,6 +406,8 @@ function TemplateCanvasComponent({
   const stageRef = useRef<Konva.Stage>(null);
   const nodeRefs = useRef(new Map<string, Konva.Node>());
   const motionNodeRefs = useRef(new Map<string, Konva.Group>());
+  const textNodeRefs = useRef(new Map<string, Konva.Text>());
+  const textClipRefs = useRef(new Map<string, Konva.Group>());
   const dragStartRef = useRef(new Map<string, { x: number; y: number }>());
   const playbackStartRef = useRef(0);
   const lastTickRef = useRef(0);
@@ -444,10 +447,29 @@ function TemplateCanvasComponent({
           x: motion.scale === 1 ? 0 : layer.width / 2,
           y: motion.scale === 1 ? 0 : layer.height / 2
         });
+        if (layer.type === "text") {
+          const textNode = textNodeRefs.current.get(layer.id);
+          const clipNode = textClipRefs.current.get(layer.id);
+          const textMotion = getTextMotionState(
+            layer,
+            resolveLayerText(layer, data),
+            value
+          );
+          if (textNode && textNode.text() !== textMotion.text) textNode.text(textMotion.text);
+          if (textNode && Math.abs(textNode.opacity() - textMotion.opacity) > 0.001) {
+            textNode.opacity(textMotion.opacity);
+          }
+          if (textNode && Math.abs(textNode.letterSpacing() - textMotion.letterSpacing) > 0.01) {
+            textNode.letterSpacing(textMotion.letterSpacing);
+          }
+          if (clipNode && Math.abs(clipNode.clipWidth() - textMotion.clipWidth) > 0.1) {
+            clipNode.clipWidth(textMotion.clipWidth);
+          }
+        }
       }
       contentLayer?.batchDraw();
     },
-    [document.layers]
+    [data, document.layers]
   );
 
   useEffect(() => {
@@ -464,6 +486,8 @@ function TemplateCanvasComponent({
       if (!stage) return "";
       const overlays = stage.find(".editor-overlay");
       const motionNodes = stage.find(".motion-content");
+      const textNodes = stage.find<Konva.Text>(".animated-text");
+      const textClips = stage.find<Konva.Group>(".text-clip");
       const motionState = motionNodes.map((node) => ({
         node,
         x: node.x(),
@@ -474,6 +498,16 @@ function TemplateCanvasComponent({
         offsetX: node.offsetX(),
         offsetY: node.offsetY()
       }));
+      const textState = textNodes.map((node) => ({
+        node,
+        text: node.text(),
+        opacity: node.opacity(),
+        letterSpacing: node.letterSpacing()
+      }));
+      const clipState = textClips.map((node) => ({
+        node,
+        clipWidth: node.clipWidth()
+      }));
       overlays.forEach((node) => node.hide());
       motionNodes.forEach((node) => {
         node.position({ x: 0, y: 0 });
@@ -481,6 +515,15 @@ function TemplateCanvasComponent({
         node.scale({ x: 1, y: 1 });
         node.offset({ x: 0, y: 0 });
       });
+      for (const layer of document.layers) {
+        if (layer.type !== "text") continue;
+        const textNode = textNodeRefs.current.get(layer.id);
+        const clipNode = textClipRefs.current.get(layer.id);
+        textNode?.text(resolveLayerText(layer, data));
+        textNode?.opacity(1);
+        textNode?.letterSpacing(layer.letterSpacing);
+        clipNode?.clipWidth(layer.width);
+      }
       stage.batchDraw();
       const dataUrl = stage.toDataURL({ pixelRatio: Math.max(1, 1 / scale) });
       overlays.forEach((node) => node.show());
@@ -490,10 +533,16 @@ function TemplateCanvasComponent({
         node.scale({ x: state.scaleX, y: state.scaleY });
         node.offset({ x: state.offsetX, y: state.offsetY });
       });
+      textState.forEach(({ node, ...state }) => {
+        node.text(state.text);
+        node.opacity(state.opacity);
+        node.letterSpacing(state.letterSpacing);
+      });
+      clipState.forEach(({ node, clipWidth }) => node.clipWidth(clipWidth));
       stage.batchDraw();
       return dataUrl;
     });
-  }, [onExportReady, scale]);
+  }, [data, document.layers, onExportReady, scale]);
 
   useEffect(() => {
     let active = true;
@@ -652,6 +701,11 @@ function TemplateCanvasComponent({
                   ? layer.src
                   : "";
             const motion = getMotionState(layer, playbackMs);
+            const resolvedText = layer.type === "text" ? resolveLayerText(layer, data) : "";
+            const textMotion =
+              layer.type === "text"
+                ? getTextMotionState(layer, resolvedText, playbackMs)
+                : null;
 
             return (
               <Group
@@ -756,20 +810,42 @@ function TemplateCanvasComponent({
                     </>
                   ) : null}
                   {layer.type === "text" ? (
-                    <Text
-                      width={layer.width}
-                      height={layer.height}
-                      text={resolveLayerText(layer, data)}
-                      fill={layer.color}
-                      fontFamily={layer.fontFamily}
-                      fontSize={layer.fontSize}
-                      fontStyle={layer.fontWeight >= 700 ? "bold" : "normal"}
-                      lineHeight={layer.lineHeight}
-                      letterSpacing={layer.letterSpacing}
-                      align={layer.align}
-                      verticalAlign="middle"
-                      wrap="word"
-                    />
+                    <Group
+                      name="text-clip"
+                      ref={(node) => {
+                        if (node) textClipRefs.current.set(layer.id, node);
+                        else textClipRefs.current.delete(layer.id);
+                      }}
+                      clipX={0}
+                      clipY={0}
+                      clipHeight={layer.height}
+                      {...(playing ? {} : { clipWidth: textMotion?.clipWidth ?? layer.width })}
+                    >
+                      <Text
+                        name="animated-text"
+                        ref={(node) => {
+                          if (node) textNodeRefs.current.set(layer.id, node);
+                          else textNodeRefs.current.delete(layer.id);
+                        }}
+                        width={layer.width}
+                        height={layer.height}
+                        {...(playing
+                          ? {}
+                          : {
+                              text: textMotion?.text ?? resolvedText,
+                              opacity: textMotion?.opacity ?? 1,
+                              letterSpacing: textMotion?.letterSpacing ?? layer.letterSpacing
+                            })}
+                        fill={layer.color}
+                        fontFamily={layer.fontFamily}
+                        fontSize={layer.fontSize}
+                        fontStyle={layer.fontWeight >= 700 ? "bold" : "normal"}
+                        lineHeight={layer.lineHeight}
+                        align={layer.align}
+                        verticalAlign="middle"
+                        wrap="word"
+                      />
+                    </Group>
                   ) : null}
                   {layer.type === "image" ? <ImageNode layer={layer} source={source} /> : null}
                   {layer.type === "ornament" ? <OrnamentNode layer={layer} /> : null}
@@ -864,6 +940,7 @@ export function TemplateDocumentPreview({ document, data, className }: TemplateD
         layer.motion &&
         (layer.motion.enter !== "none" ||
           layer.motion.exit !== "none" ||
+          layer.motion.textEffect !== "none" ||
           layer.motion.startMs > 0 ||
           layer.motion.endMs < duration)
     );
@@ -955,6 +1032,70 @@ function getMotionState(layer: TemplateLayer, playbackMs?: number) {
     scale:
       (motion.enter === "zoom" ? 0.84 + enterProgress * 0.16 : 1) *
       (motion.exit === "zoom" ? 1 - exitProgress * 0.16 : 1)
+  };
+}
+
+function getTextMotionState(
+  layer: TemplateTextLayer,
+  fullText: string,
+  playbackMs?: number
+) {
+  const effect = layer.motion?.textEffect ?? "none";
+  if (playbackMs === undefined || !layer.motion || effect === "none") {
+    return {
+      text: fullText,
+      opacity: 1,
+      letterSpacing: layer.letterSpacing,
+      clipWidth: layer.width
+    };
+  }
+
+  const raw = Math.max(
+    0,
+    Math.min(
+      1,
+      (playbackMs - layer.motion.startMs) / Math.max(1, layer.motion.durationMs)
+    )
+  );
+  const characters = Array.from(fullText);
+
+  if (effect === "typewriter" || effect === "letter-reveal") {
+    const visibleCount = Math.ceil(characters.length * raw);
+    const cursor = effect === "typewriter" && raw < 1 ? "|" : "";
+    return {
+      text: `${characters.slice(0, visibleCount).join("")}${cursor}`,
+      opacity: raw > 0 ? 1 : 0,
+      letterSpacing: layer.letterSpacing,
+      clipWidth: layer.width
+    };
+  }
+
+  if (effect === "word-reveal") {
+    const words = fullText.match(/\S+\s*/g) ?? [];
+    const visibleCount = Math.ceil(words.length * raw);
+    return {
+      text: words.slice(0, visibleCount).join(""),
+      opacity: raw > 0 ? 1 : 0,
+      letterSpacing: layer.letterSpacing,
+      clipWidth: layer.width
+    };
+  }
+
+  if (effect === "tracking") {
+    const progress = easeMotionProgress(raw, layer.motion.easing);
+    return {
+      text: fullText,
+      opacity: progress,
+      letterSpacing: layer.letterSpacing + (1 - progress) * Math.max(12, layer.fontSize * 0.22),
+      clipWidth: layer.width
+    };
+  }
+
+  return {
+    text: fullText,
+    opacity: raw > 0 ? 1 : 0,
+    letterSpacing: layer.letterSpacing,
+    clipWidth: layer.width * easeMotionProgress(raw, layer.motion.easing)
   };
 }
 
