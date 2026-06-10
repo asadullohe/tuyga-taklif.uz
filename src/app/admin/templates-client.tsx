@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { BadgeCheck, FileJson, Palette, PenTool, UploadCloud } from "lucide-react";
+import { BadgeCheck, FileJson, Palette, PenLine, PenTool, UploadCloud } from "lucide-react";
 import type { ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -142,15 +142,22 @@ export function AdminTemplatesClient({ templates }: { templates: InvitationTempl
                 </div>
                 <Badge>{template.status}</Badge>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => statusMutation.mutate(template)}
-              >
-                {template.status === "active" ? "Noaktiv qilish" : "Aktiv qilish"}
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild variant="default" size="sm">
+                  <Link href={`/admin/templates/${encodeURIComponent(template.id)}/edit`}>
+                    <PenLine className="h-4 w-4" />
+                    Studioda tahrirlash
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => statusMutation.mutate(template)}
+                >
+                  {template.status === "active" ? "Noaktiv qilish" : "Aktiv qilish"}
+                </Button>
+              </div>
             </div>
           ))}
         </CardContent>

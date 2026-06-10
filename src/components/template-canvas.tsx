@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Konva from "konva";
 import {
   Circle,
@@ -14,9 +14,11 @@ import {
   Transformer
 } from "react-konva";
 import useImage from "use-image";
+import { loadGoogleFonts } from "@/lib/google-fonts";
 import { getLayerPermissions, normalizeTemplateDocument, resolveLayerText } from "@/lib/template-document";
 import type {
   TemplateDocument,
+  TemplateCountdownLayer,
   TemplateImageLayer,
   TemplateLayer,
   TemplateOrnamentLayer,
@@ -36,6 +38,7 @@ type TemplateCanvasProps = {
   gridSize?: number;
   scale?: number;
   playbackMs?: number;
+  playing?: boolean;
   className?: string;
   onSelectLayer?: (id: string | null) => void;
   onSelectLayers?: (ids: string[]) => void;
@@ -43,6 +46,8 @@ type TemplateCanvasProps = {
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
   onExportReady?: (exporter: () => string) => void;
+  onPlaybackTick?: (value: number) => void;
+  onPlaybackEnd?: () => void;
 };
 
 type TemplateDocumentPreviewProps = {
@@ -283,7 +288,97 @@ function BackgroundImage({ document }: { document: TemplateDocument }) {
   );
 }
 
-export function TemplateCanvas({
+function CountdownNode({
+  layer,
+  data,
+  now
+}: {
+  layer: TemplateCountdownLayer;
+  data?: Partial<WeddingFormData>;
+  now: number;
+}) {
+  const countdown = getCountdownValues(data, now, layer.timezoneOffsetMinutes);
+  const units = layer.showSeconds
+    ? [
+        { value: countdown.days, label: "Kun" },
+        { value: countdown.hours, label: "Soat" },
+        { value: countdown.minutes, label: "Daqiqa" },
+        { value: countdown.seconds, label: "Soniya" }
+      ]
+    : [
+        { value: countdown.days, label: "Kun" },
+        { value: countdown.hours, label: "Soat" },
+        { value: countdown.minutes, label: "Daqiqa" }
+      ];
+  const titleHeight = Math.min(
+    layer.height * 0.36,
+    Math.max(layer.titleFontSize * 1.5, layer.titleFontSize + layer.titleMarginBottom)
+  );
+
+  const totalGap = layer.gap * Math.max(0, units.length - 1);
+  const boxWidth = (layer.width - totalGap) / units.length;
+  const boxTop = titleHeight;
+  const boxHeight = Math.max(40, layer.height - titleHeight);
+
+  return (
+    <Group>
+      <Text
+        width={layer.width}
+        height={Math.max(1, titleHeight - layer.titleMarginBottom)}
+        text={layer.title}
+        fill={layer.titleColor}
+        fontFamily={layer.titleFontFamily}
+        fontSize={Math.min(layer.titleFontSize, titleHeight * 0.72)}
+        fontStyle={layer.titleFontWeight >= 700 ? "bold" : layer.titleFontWeight >= 600 ? "600" : "normal"}
+        letterSpacing={layer.titleLetterSpacing}
+        align={layer.titleAlign}
+        verticalAlign="middle"
+      />
+      {units.map((unit, index) => {
+        const x = index * (boxWidth + layer.gap);
+        return (
+          <Group key={unit.label} x={x} y={boxTop}>
+            <Rect
+              width={boxWidth}
+              height={boxHeight}
+              fill={layer.panelColor}
+              stroke={layer.panelStroke}
+              strokeWidth={layer.panelStrokeWidth}
+              cornerRadius={layer.radius}
+            />
+            <Text
+              y={boxHeight * 0.12}
+              width={boxWidth}
+              height={boxHeight * 0.56}
+              text={String(unit.value).padStart(2, "0")}
+              fill={layer.color}
+              fontFamily={layer.fontFamily}
+              fontSize={Math.min(layer.valueFontSize, boxHeight * 0.48)}
+              fontStyle={layer.valueFontWeight >= 700 ? "bold" : layer.valueFontWeight >= 600 ? "600" : "normal"}
+              align="center"
+              verticalAlign="middle"
+            />
+            <Text
+              y={boxHeight * 0.68}
+              width={boxWidth}
+              height={boxHeight * 0.22}
+              text={unit.label}
+              fill={layer.labelColor}
+              fontFamily={layer.fontFamily}
+              fontSize={Math.min(layer.labelFontSize, boxHeight * 0.13)}
+              fontStyle={layer.labelFontWeight >= 700 ? "bold" : layer.labelFontWeight >= 600 ? "600" : "normal"}
+              letterSpacing={layer.labelLetterSpacing}
+              align="center"
+              verticalAlign="middle"
+            />
+          </Group>
+        );
+      })}
+    </Group>
+  );
+}
+
+function TemplateCanvasComponent({
   document: sourceDocument,
   data,
   selectedLayerId,
@@ -294,21 +389,66 @@ export function TemplateCanvas({
   gridSize = 20,
   scale = 0.36,
   playbackMs,
+  playing = false,
   className,
   onSelectLayer,
   onSelectLayers,
   onChangeLayer,
   onInteractionStart,
   onInteractionEnd,
-  onExportReady
+  onExportReady,
+  onPlaybackTick,
+  onPlaybackEnd
 }: TemplateCanvasProps) {
   const document = useMemo(() => normalizeTemplateDocument(sourceDocument), [sourceDocument]);
   const transformerRef = useRef<Konva.Transformer>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const nodeRefs = useRef(new Map<string, Konva.Node>());
+  const motionNodeRefs = useRef(new Map<string, Konva.Group>());
   const dragStartRef = useRef(new Map<string, { x: number; y: number }>());
+  const playbackStartRef = useRef(0);
+  const lastTickRef = useRef(0);
   const [guides, setGuides] = useState<GuideState>({});
+  const [now, setNow] = useState(() => Date.now());
+  const [, setFontRevision] = useState(0);
   const selection = selectedLayerIds ?? (selectedLayerId ? [selectedLayerId] : []);
+  const documentFonts = useMemo(
+    () => [
+      ...new Set(
+        document.layers.flatMap((layer) =>
+          layer.type === "text"
+            ? [layer.fontFamily]
+            : layer.type === "countdown"
+              ? [layer.fontFamily, layer.titleFontFamily]
+              : []
+        )
+      )
+    ],
+    [document.layers]
+  );
+  const applyPlayback = useCallback(
+    (value: number) => {
+      let contentLayer: Konva.Layer | null = null;
+      for (const layer of document.layers) {
+        const node = motionNodeRefs.current.get(layer.id);
+        if (!node) continue;
+        contentLayer ??= node.getLayer();
+        const motion = getMotionState(layer, value);
+        node.position({
+          x: motion.x + (motion.scale === 1 ? 0 : layer.width / 2),
+          y: motion.y + (motion.scale === 1 ? 0 : layer.height / 2)
+        });
+        node.opacity(motion.opacity);
+        node.scale({ x: motion.scale, y: motion.scale });
+        node.offset({
+          x: motion.scale === 1 ? 0 : layer.width / 2,
+          y: motion.scale === 1 ? 0 : layer.height / 2
+        });
+      }
+      contentLayer?.batchDraw();
+    },
+    [document.layers]
+  );
 
   useEffect(() => {
     const transformer = transformerRef.current;
@@ -354,6 +494,57 @@ export function TemplateCanvas({
       return dataUrl;
     });
   }, [onExportReady, scale]);
+
+  useEffect(() => {
+    let active = true;
+    void loadGoogleFonts(documentFonts).then(() => {
+      if (active) setFontRevision((revision) => revision + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [documentFonts.join("|")]);
+
+  useEffect(() => {
+    if (!playing) applyPlayback(playbackMs ?? 0);
+  }, [applyPlayback, playbackMs, playing]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const duration = document.timeline?.durationMs ?? 6000;
+    playbackStartRef.current = performance.now() - (playbackMs ?? 0);
+    lastTickRef.current = 0;
+    let frame = 0;
+
+    const tick = (now: number) => {
+      const value = Math.min(duration, now - playbackStartRef.current);
+      applyPlayback(value);
+      if (now - lastTickRef.current >= 200 || value >= duration) {
+        lastTickRef.current = now;
+        onPlaybackTick?.(value);
+      }
+      if (value >= duration) {
+        onPlaybackEnd?.();
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [
+    applyPlayback,
+    document.timeline?.durationMs,
+    onPlaybackEnd,
+    onPlaybackTick,
+    playing
+  ]);
+
+  useEffect(() => {
+    if (!document.layers.some((layer) => layer.type === "countdown")) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [document.layers]);
 
   const select = (id: string, additive: boolean) => {
     const clickedLayer = document.layers.find((layer) => layer.id === id);
@@ -451,17 +642,6 @@ export function TemplateCanvas({
         <Layer>
           <Rect width={document.width} height={document.height} listening={false} {...cssFill(document.background)} />
           <BackgroundImage document={document} />
-          {interactive && snapToGrid
-            ? Array.from({ length: Math.ceil(document.width / gridSize) + 1 }, (_, index) => (
-                <Line name="editor-overlay" key={`gx-${index}`} points={[index * gridSize, 0, index * gridSize, document.height]} stroke="#0f766e" opacity={0.06} strokeWidth={1} listening={false} />
-              ))
-            : null}
-          {interactive && snapToGrid
-            ? Array.from({ length: Math.ceil(document.height / gridSize) + 1 }, (_, index) => (
-                <Line name="editor-overlay" key={`gy-${index}`} points={[0, index * gridSize, document.width, index * gridSize]} stroke="#0f766e" opacity={0.06} strokeWidth={1} listening={false} />
-              ))
-            : null}
-
           {document.layers.map((layer) => {
             if (!layer.visible) return null;
             const draggable = interactive && canMove(layer, permissionMode);
@@ -546,13 +726,21 @@ export function TemplateCanvas({
               >
                 <Group
                   name="motion-content"
-                  x={motion.x + (motion.scale === 1 ? 0 : layer.width / 2)}
-                  y={motion.y + (motion.scale === 1 ? 0 : layer.height / 2)}
-                  opacity={motion.opacity}
-                  scaleX={motion.scale}
-                  scaleY={motion.scale}
-                  offsetX={motion.scale === 1 ? 0 : layer.width / 2}
-                  offsetY={motion.scale === 1 ? 0 : layer.height / 2}
+                  ref={(node) => {
+                    if (node) motionNodeRefs.current.set(layer.id, node);
+                    else motionNodeRefs.current.delete(layer.id);
+                  }}
+                  {...(playing
+                    ? {}
+                    : {
+                        x: motion.x + (motion.scale === 1 ? 0 : layer.width / 2),
+                        y: motion.y + (motion.scale === 1 ? 0 : layer.height / 2),
+                        opacity: motion.opacity,
+                        scaleX: motion.scale,
+                        scaleY: motion.scale,
+                        offsetX: motion.scale === 1 ? 0 : layer.width / 2,
+                        offsetY: motion.scale === 1 ? 0 : layer.height / 2
+                      })}
                 >
                   {layer.type === "shape" ? (
                     <>
@@ -585,10 +773,24 @@ export function TemplateCanvas({
                   ) : null}
                   {layer.type === "image" ? <ImageNode layer={layer} source={source} /> : null}
                   {layer.type === "ornament" ? <OrnamentNode layer={layer} /> : null}
+                  {layer.type === "countdown" ? <CountdownNode layer={layer} data={data} now={now} /> : null}
                 </Group>
               </Group>
             );
           })}
+        </Layer>
+
+        <Layer>
+          {interactive && snapToGrid
+            ? Array.from({ length: Math.ceil(document.width / gridSize) + 1 }, (_, index) => (
+                <Line name="editor-overlay" key={`gx-${index}`} points={[index * gridSize, 0, index * gridSize, document.height]} stroke="#0f766e" opacity={0.06} strokeWidth={1} listening={false} />
+              ))
+            : null}
+          {interactive && snapToGrid
+            ? Array.from({ length: Math.ceil(document.height / gridSize) + 1 }, (_, index) => (
+                <Line name="editor-overlay" key={`gy-${index}`} points={[0, index * gridSize, document.width, index * gridSize]} stroke="#0f766e" opacity={0.06} strokeWidth={1} listening={false} />
+              ))
+            : null}
 
           {guides.vertical !== undefined ? (
             <Line name="editor-overlay" points={[guides.vertical, 0, guides.vertical, document.height]} stroke="#0d9488" strokeWidth={2 / scale} listening={false} />
@@ -622,10 +824,27 @@ export function TemplateCanvas({
   );
 }
 
+export const TemplateCanvas = memo(TemplateCanvasComponent, (previous, next) => {
+  if (!previous.playing || !next.playing) return false;
+
+  return (
+    previous.document === next.document &&
+    previous.data === next.data &&
+    previous.selectedLayerId === next.selectedLayerId &&
+    previous.selectedLayerIds === next.selectedLayerIds &&
+    previous.interactive === next.interactive &&
+    previous.permissionMode === next.permissionMode &&
+    previous.snapToGrid === next.snapToGrid &&
+    previous.gridSize === next.gridSize &&
+    previous.scale === next.scale &&
+    previous.className === next.className
+  );
+});
+
 export function TemplateDocumentPreview({ document, data, className }: TemplateDocumentPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.3);
-  const [playbackMs, setPlaybackMs] = useState<number | undefined>(0);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -639,47 +858,117 @@ export function TemplateDocumentPreview({ document, data, className }: TemplateD
 
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion || !document.layers.some((layer) => layer.motion?.enter && layer.motion.enter !== "none")) {
-      setPlaybackMs(undefined);
+    const duration = document.timeline?.durationMs ?? 6000;
+    const hasMotion = document.layers.some(
+      (layer) =>
+        layer.motion &&
+        (layer.motion.enter !== "none" ||
+          layer.motion.exit !== "none" ||
+          layer.motion.startMs > 0 ||
+          layer.motion.endMs < duration)
+    );
+    if (reducedMotion || !hasMotion) {
+      setPlaying(false);
       return;
     }
-    const startedAt = performance.now();
-    let frame = 0;
-    const tick = (now: number) => {
-      setPlaybackMs(Math.min(document.timeline?.durationMs ?? 6000, now - startedAt));
-      if (now - startedAt < (document.timeline?.durationMs ?? 6000)) {
-        frame = requestAnimationFrame(tick);
-      }
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    setPlaying(true);
   }, [document.layers, document.timeline?.durationMs]);
 
   return (
     <div ref={containerRef} className={cn("mx-auto flex w-full max-w-[540px] justify-center", className)}>
-      <TemplateCanvas document={document} data={data} scale={scale} playbackMs={playbackMs} />
+      <TemplateCanvas
+        document={document}
+        data={data}
+        scale={scale}
+        playbackMs={0}
+        playing={playing}
+        onPlaybackEnd={() => setPlaying(false)}
+      />
     </div>
   );
 }
 
+function getCountdownValues(
+  data: Partial<WeddingFormData> | undefined,
+  now: number,
+  timezoneOffsetMinutes: number
+) {
+  if (!data?.eventDate) {
+    return { days: 34, hours: 2, minutes: 35, seconds: 0, completed: false };
+  }
+
+  const time = (data.eventTime || "00:00").slice(0, 5);
+  const offsetSign = timezoneOffsetMinutes >= 0 ? "+" : "-";
+  const absoluteOffset = Math.abs(timezoneOffsetMinutes);
+  const offsetHours = String(Math.floor(absoluteOffset / 60)).padStart(2, "0");
+  const offsetMinutes = String(absoluteOffset % 60).padStart(2, "0");
+  const target = Date.parse(`${data.eventDate}T${time}:00${offsetSign}${offsetHours}:${offsetMinutes}`);
+  if (!Number.isFinite(target)) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, completed: false };
+  }
+
+  const remaining = Math.max(0, target - now);
+  const totalSeconds = Math.floor(remaining / 1000);
+  return {
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+    completed: remaining <= 0
+  };
+}
+
 function getMotionState(layer: TemplateLayer, playbackMs?: number) {
-  if (playbackMs === undefined || !layer.motion || layer.motion.enter === "none") {
+  if (playbackMs === undefined || !layer.motion) {
     return { x: 0, y: 0, opacity: 1, scale: 1 };
   }
-  const raw = Math.max(0, Math.min(1, (playbackMs - layer.motion.startMs) / Math.max(1, layer.motion.durationMs)));
+  const motion = layer.motion;
+  if (playbackMs < motion.startMs || playbackMs >= motion.endMs) {
+    return { x: 0, y: 0, opacity: 0, scale: 1 };
+  }
+
+  const enterRaw =
+    motion.enter === "none"
+      ? 1
+      : Math.max(0, Math.min(1, (playbackMs - motion.startMs) / Math.max(1, motion.durationMs)));
+  const exitStart = Math.max(motion.startMs, motion.endMs - motion.exitDurationMs);
+  const exitRaw =
+    motion.exit === "none" || playbackMs < exitStart
+      ? 0
+      : Math.max(0, Math.min(1, (playbackMs - exitStart) / Math.max(1, motion.exitDurationMs)));
+  const enterProgress = easeMotionProgress(enterRaw, motion.easing);
+  const exitProgress = easeMotionProgress(exitRaw, motion.easing);
+  const enterDistance = 70 * (1 - enterProgress);
+  const exitDistance = 70 * exitProgress;
+
+  const enterX =
+    motion.enter === "slide-left" ? -enterDistance : motion.enter === "slide-right" ? enterDistance : 0;
+  const enterY = motion.enter === "rise" ? enterDistance : 0;
+  const exitX =
+    motion.exit === "slide-left" ? -exitDistance : motion.exit === "slide-right" ? exitDistance : 0;
+  const exitY = motion.exit === "rise" ? -exitDistance : 0;
+
+  return {
+    x: enterX + exitX,
+    y: enterY + exitY,
+    opacity: enterProgress * (1 - exitProgress),
+    scale:
+      (motion.enter === "zoom" ? 0.84 + enterProgress * 0.16 : 1) *
+      (motion.exit === "zoom" ? 1 - exitProgress * 0.16 : 1)
+  };
+}
+
+function easeMotionProgress(
+  raw: number,
+  easing: NonNullable<TemplateLayer["motion"]>["easing"]
+) {
   const progress =
-    layer.motion.easing === "ease-in"
+    easing === "ease-in"
       ? raw * raw
-      : layer.motion.easing === "ease-in-out"
+      : easing === "ease-in-out"
         ? raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2
-        : layer.motion.easing === "linear"
+        : easing === "linear"
           ? raw
           : 1 - Math.pow(1 - raw, 3);
-  const distance = 70 * (1 - progress);
-  return {
-    x: layer.motion.enter === "slide-left" ? -distance : layer.motion.enter === "slide-right" ? distance : 0,
-    y: layer.motion.enter === "rise" ? distance : 0,
-    opacity: progress,
-    scale: layer.motion.enter === "zoom" ? 0.84 + progress * 0.16 : 1
-  };
+  return progress;
 }

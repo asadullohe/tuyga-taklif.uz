@@ -27,9 +27,11 @@ const layerBaseSchema = z.object({
     .object({
       startMs: z.number().min(0),
       durationMs: z.number().min(0),
+      endMs: z.number().min(0).default(6000),
+      exitDurationMs: z.number().min(0).default(500),
       easing: z.enum(["linear", "ease-in", "ease-out", "ease-in-out"]),
       enter: z.enum(["none", "fade", "rise", "slide-left", "slide-right", "zoom"]),
-      exit: z.enum(["none", "fade"]).optional()
+      exit: z.enum(["none", "fade", "rise", "slide-left", "slide-right", "zoom"]).default("none")
     })
     .optional(),
   shadow: z
@@ -121,6 +123,33 @@ const ornamentLayerSchema = layerBaseSchema.extend({
   strokeWidth: z.number().positive()
 });
 
+const countdownLayerSchema = layerBaseSchema.extend({
+  type: z.literal("countdown"),
+  title: z.string(),
+  titleColor: z.string().min(1).default("#7d6a49"),
+  titleFontFamily: z.string().min(1).default("Cormorant Garamond"),
+  titleFontSize: z.number().positive().default(26),
+  titleFontWeight: z.number().min(100).max(900).default(600),
+  titleLetterSpacing: z.number().default(1),
+  titleAlign: z.enum(["left", "center", "right"]).default("center"),
+  titleMarginBottom: z.number().min(0).default(12),
+  color: z.string().min(1),
+  labelColor: z.string().min(1),
+  panelColor: z.string().min(1),
+  fontFamily: z.string().min(1),
+  valueFontSize: z.number().positive(),
+  valueFontWeight: z.number().min(100).max(900).default(700),
+  labelFontSize: z.number().positive(),
+  labelFontWeight: z.number().min(100).max(900).default(500),
+  labelLetterSpacing: z.number().default(0),
+  gap: z.number().min(0),
+  radius: z.number().min(0),
+  panelStroke: z.string().default("rgba(125,106,73,0.2)"),
+  panelStrokeWidth: z.number().min(0).default(1),
+  showSeconds: z.boolean(),
+  timezoneOffsetMinutes: z.number().int().min(-720).max(840)
+});
+
 const designDocumentSchema = z.object({
   version: z.union([z.literal(1), z.literal(2)]),
   width: z.number().positive(),
@@ -139,7 +168,8 @@ const designDocumentSchema = z.object({
       textLayerSchema,
       shapeLayerSchema,
       imageLayerSchema,
-      ornamentLayerSchema
+      ornamentLayerSchema,
+      countdownLayerSchema
     ])
   ),
   timeline: z.object({ durationMs: z.number().positive() }).optional()

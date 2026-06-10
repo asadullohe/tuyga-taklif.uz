@@ -45,9 +45,11 @@ export type TemplateLayerPermissions = {
 export type TemplateLayerMotion = {
   startMs: number;
   durationMs: number;
+  endMs: number;
+  exitDurationMs: number;
   easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
   enter: "none" | "fade" | "rise" | "slide-left" | "slide-right" | "zoom";
-  exit?: "none" | "fade";
+  exit: "none" | "fade" | "rise" | "slide-left" | "slide-right" | "zoom";
 };
 
 export type TemplateLayerBase = {
@@ -136,11 +138,39 @@ export type TemplateOrnamentLayer = TemplateLayerBase & {
   strokeWidth: number;
 };
 
+export type TemplateCountdownLayer = TemplateLayerBase & {
+  type: "countdown";
+  title: string;
+  titleColor: string;
+  titleFontFamily: string;
+  titleFontSize: number;
+  titleFontWeight: number;
+  titleLetterSpacing: number;
+  titleAlign: "left" | "center" | "right";
+  titleMarginBottom: number;
+  color: string;
+  labelColor: string;
+  panelColor: string;
+  fontFamily: string;
+  valueFontSize: number;
+  valueFontWeight: number;
+  labelFontSize: number;
+  labelFontWeight: number;
+  labelLetterSpacing: number;
+  gap: number;
+  radius: number;
+  panelStroke: string;
+  panelStrokeWidth: number;
+  showSeconds: boolean;
+  timezoneOffsetMinutes: number;
+};
+
 export type TemplateLayer =
   | TemplateTextLayer
   | TemplateShapeLayer
   | TemplateImageLayer
-  | TemplateOrnamentLayer;
+  | TemplateOrnamentLayer
+  | TemplateCountdownLayer;
 
 export type TemplateDocument = {
   version: 1 | 2;

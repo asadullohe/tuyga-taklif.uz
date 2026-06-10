@@ -271,24 +271,49 @@ export function cloneStarterTemplateDocument(): TemplateDocument {
 }
 
 export function normalizeTemplateDocument(document: TemplateDocument): TemplateDocument {
+  const timeline = document.timeline ?? { durationMs: 6000 };
+
   return {
     ...structuredClone(document),
     version: 2,
-    timeline: document.timeline ?? { durationMs: 6000 },
-    layers: document.layers.map((layer) => ({
-      ...layer,
-      permissions: {
-        ...defaultLayerPermissions,
-        ...layer.permissions
-      },
-      motion: layer.motion ?? {
-        startMs: 0,
-        durationMs: 700,
-        easing: "ease-out",
-        enter: "none",
-        exit: "none"
-      }
-    }))
+    timeline,
+    layers: document.layers.map((sourceLayer) => {
+      const layer =
+        sourceLayer.type === "countdown"
+          ? {
+              ...sourceLayer,
+              titleColor: sourceLayer.titleColor ?? sourceLayer.labelColor ?? "#7d6a49",
+              titleFontFamily: sourceLayer.titleFontFamily ?? sourceLayer.fontFamily ?? "Cormorant Garamond",
+              titleFontSize: sourceLayer.titleFontSize ?? 26,
+              titleFontWeight: sourceLayer.titleFontWeight ?? 600,
+              titleLetterSpacing: sourceLayer.titleLetterSpacing ?? 1,
+              titleAlign: sourceLayer.titleAlign ?? "center",
+              titleMarginBottom: sourceLayer.titleMarginBottom ?? 12,
+              valueFontWeight: sourceLayer.valueFontWeight ?? 700,
+              labelFontWeight: sourceLayer.labelFontWeight ?? 500,
+              labelLetterSpacing: sourceLayer.labelLetterSpacing ?? 0,
+              panelStroke: sourceLayer.panelStroke ?? "rgba(125,106,73,0.2)",
+              panelStrokeWidth: sourceLayer.panelStrokeWidth ?? 1
+            }
+          : sourceLayer;
+
+      return {
+        ...layer,
+        permissions: {
+          ...defaultLayerPermissions,
+          ...layer.permissions
+        },
+        motion: {
+          startMs: layer.motion?.startMs ?? 0,
+          durationMs: layer.motion?.durationMs ?? 700,
+          endMs: layer.motion?.endMs ?? timeline.durationMs,
+          exitDurationMs: layer.motion?.exitDurationMs ?? 500,
+          easing: layer.motion?.easing ?? "ease-out",
+          enter: layer.motion?.enter ?? "none",
+          exit: layer.motion?.exit ?? "none"
+        }
+      };
+    })
   };
 }
 
@@ -378,6 +403,35 @@ export function sanitizeUserDesignDocument(
       nextLayer.color = candidateLayer.color;
       nextLayer.secondaryColor = candidateLayer.secondaryColor;
       nextLayer.strokeWidth = candidateLayer.strokeWidth;
+    }
+
+    if (nextLayer.type === "countdown" && candidateLayer.type === "countdown") {
+      if (permissions.editable) {
+        nextLayer.title = candidateLayer.title;
+      }
+      if (permissions.styleEditable) {
+        nextLayer.titleColor = candidateLayer.titleColor;
+        nextLayer.titleFontFamily = candidateLayer.titleFontFamily;
+        nextLayer.titleFontSize = candidateLayer.titleFontSize;
+        nextLayer.titleFontWeight = candidateLayer.titleFontWeight;
+        nextLayer.titleLetterSpacing = candidateLayer.titleLetterSpacing;
+        nextLayer.titleAlign = candidateLayer.titleAlign;
+        nextLayer.titleMarginBottom = candidateLayer.titleMarginBottom;
+        nextLayer.color = candidateLayer.color;
+        nextLayer.labelColor = candidateLayer.labelColor;
+        nextLayer.panelColor = candidateLayer.panelColor;
+        nextLayer.fontFamily = candidateLayer.fontFamily;
+        nextLayer.valueFontSize = candidateLayer.valueFontSize;
+        nextLayer.valueFontWeight = candidateLayer.valueFontWeight;
+        nextLayer.labelFontSize = candidateLayer.labelFontSize;
+        nextLayer.labelFontWeight = candidateLayer.labelFontWeight;
+        nextLayer.labelLetterSpacing = candidateLayer.labelLetterSpacing;
+        nextLayer.gap = candidateLayer.gap;
+        nextLayer.radius = candidateLayer.radius;
+        nextLayer.panelStroke = candidateLayer.panelStroke;
+        nextLayer.panelStrokeWidth = candidateLayer.panelStrokeWidth;
+        nextLayer.showSeconds = candidateLayer.showSeconds;
+      }
     }
 
     layers.push(nextLayer);

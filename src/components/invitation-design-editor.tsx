@@ -9,11 +9,13 @@ import {
   Loader2,
   LockKeyhole,
   Palette,
+  Timer,
   Trash2,
   Type,
   Upload
 } from "lucide-react";
 import { TemplateCanvas } from "@/components/template-canvas";
+import { FontPicker } from "@/components/font-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,17 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { getLayerPermissions, normalizeTemplateDocument } from "@/lib/template-document";
 import type { TemplateDocument, TemplateImageLayer, TemplateLayer, WeddingFormData } from "@/types";
 import { cn } from "@/lib/utils";
-
-const editableFontFamilies = [
-  "Cormorant Garamond",
-  "Playfair Display",
-  "Great Vibes",
-  "Cinzel",
-  "Marcellus",
-  "Montserrat",
-  "Georgia",
-  "Baskerville"
-];
 
 type InvitationDesignEditorProps = {
   invitationId: string;
@@ -189,7 +180,7 @@ function UserLayerInspector({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 font-semibold text-[#30332d]">
-            {layer.type === "text" ? <Type className="h-4 w-4" /> : layer.type === "ornament" ? <Flower2 className="h-4 w-4" /> : layer.type === "image" ? <ImagePlus className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {layer.type === "text" ? <Type className="h-4 w-4" /> : layer.type === "ornament" ? <Flower2 className="h-4 w-4" /> : layer.type === "image" ? <ImagePlus className="h-4 w-4" /> : layer.type === "countdown" ? <Timer className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             {layer.name}
           </div>
           {!editable ? (
@@ -239,6 +230,13 @@ function UserLayerInspector({
         </div>
       ) : null}
 
+      {layer.type === "countdown" && permissions.editable ? (
+        <div>
+          <Label>Sarlavha</Label>
+          <Input className="mt-2 bg-white" value={layer.title} onChange={(event) => onChange({ title: event.target.value })} />
+        </div>
+      ) : null}
+
       {permissions.styleEditable ? (
         <div className="space-y-3 border-t border-[#ded4c4] pt-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a744c]">Style</p>
@@ -247,9 +245,7 @@ function UserLayerInspector({
               <ColorField label="Matn rangi" value={layer.color} onChange={(color) => onChange({ color })} />
               <div>
                 <Label>Font</Label>
-                <select value={layer.fontFamily} onChange={(event) => onChange({ fontFamily: event.target.value })} className="mt-2 h-10 w-full rounded-md border border-[#d9cdb9] bg-white px-3 text-sm">
-                  {editableFontFamilies.map((font) => <option key={font}>{font}</option>)}
-                </select>
+                <FontPicker className="mt-2" value={layer.fontFamily} onChange={(fontFamily) => onChange({ fontFamily })} />
               </div>
               <div>
                 <Label>Font size</Label>
@@ -262,6 +258,27 @@ function UserLayerInspector({
             <>
               <ColorField label="Asosiy rang" value={layer.color} onChange={(color) => onChange({ color })} />
               <ColorField label="Ikkinchi rang" value={layer.secondaryColor} onChange={(secondaryColor) => onChange({ secondaryColor })} />
+            </>
+          ) : null}
+          {layer.type === "countdown" ? (
+            <>
+              <ColorField label="Sarlavha rangi" value={layer.titleColor} onChange={(titleColor) => onChange({ titleColor })} />
+              <div>
+                <Label>Sarlavha fonti</Label>
+                <FontPicker className="mt-2" value={layer.titleFontFamily} onChange={(titleFontFamily) => onChange({ titleFontFamily })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Sarlavha size</Label>
+                  <Input className="mt-2 bg-white" type="number" min={8} value={layer.titleFontSize} onChange={(event) => onChange({ titleFontSize: Number(event.target.value) })} />
+                </div>
+                <div>
+                  <Label>Sarlavha weight</Label>
+                  <Input className="mt-2 bg-white" type="number" min={100} max={900} step={100} value={layer.titleFontWeight} onChange={(event) => onChange({ titleFontWeight: Number(event.target.value) })} />
+                </div>
+              </div>
+              <ColorField label="Raqam rangi" value={layer.color} onChange={(color) => onChange({ color })} />
+              <ColorField label="Label rangi" value={layer.labelColor} onChange={(labelColor) => onChange({ labelColor })} />
             </>
           ) : null}
         </div>

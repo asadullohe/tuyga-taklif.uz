@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlignCenter,
@@ -26,6 +26,7 @@ import {
   Redo2,
   Save,
   Square,
+  Timer,
   Trash2,
   Type,
   Undo2,
@@ -35,6 +36,7 @@ import {
   WandSparkles
 } from "lucide-react";
 import { TemplateCanvas } from "@/components/template-canvas";
+import { FontPicker } from "@/components/font-picker";
 import { TemplateOrnament } from "@/components/template-ornament";
 import { TemplateTimeline } from "@/components/template-timeline";
 import { Button } from "@/components/ui/button";
@@ -50,24 +52,15 @@ import {
 } from "@/lib/template-document";
 import type {
   OrnamentKind,
+  TemplateCountdownLayer,
   TemplateImageLayer,
   TemplateLayer,
   TemplateOrnamentLayer,
   TemplateShapeLayer,
-  TemplateTextLayer
+  TemplateTextLayer,
+  InvitationTemplate
 } from "@/types";
 import { cn } from "@/lib/utils";
-
-const fonts = [
-  "Cormorant Garamond",
-  "Playfair Display",
-  "Great Vibes",
-  "Cinzel",
-  "Marcellus",
-  "Montserrat",
-  "Georgia",
-  "Baskerville"
-];
 
 const ornamentPresets: Array<{
   kind: OrnamentKind;
@@ -97,24 +90,34 @@ type UploadedAsset = {
 
 type LeftTab = "elements" | "assets" | "layers";
 
-export function TemplateStudioClient() {
+type TemplateStudioClientProps = {
+  initialTemplate?: InvitationTemplate;
+};
+
+export function TemplateStudioClient({ initialTemplate }: TemplateStudioClientProps = {}) {
   const router = useRouter();
-  const editor = useDesignEditor(cloneStarterTemplateDocument());
+  const editor = useDesignEditor(initialTemplate?.designDocument ?? cloneStarterTemplateDocument());
   const [leftTab, setLeftTab] = useState<LeftTab>("elements");
   const [zoom, setZoom] = useState(0.34);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [playbackMs, setPlaybackMs] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [name, setName] = useState("Yangi premium shablon");
-  const [description, setDescription] = useState("Layer-based, to'liq tahrirlanadigan to'y taklifnomasi.");
+  const [name, setName] = useState(initialTemplate?.name ?? "Yangi premium shablon");
+  const [description, setDescription] = useState(
+    initialTemplate?.description ?? "Layer-based, to'liq tahrirlanadigan to'y taklifnomasi."
+  );
+  const [status, setStatus] = useState<"active" | "inactive">(initialTemplate?.status ?? "active");
+  const [revision, setRevision] = useState(initialTemplate?.revision ?? 1);
   const [isSaving, setIsSaving] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [assets, setAssets] = useState<UploadedAsset[]>([]);
   const [assetError, setAssetError] = useState("");
   const exportCanvasRef = useRef<(() => string) | null>(null);
 
   const selectedLayer = editor.selectedLayers.length === 1 ? editor.selectedLayers[0] : null;
+  const finishPlayback = useCallback(() => setPlaying(false), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -130,42 +133,73 @@ export function TemplateStudioClient() {
     return () => controller.abort();
   }, []);
 
-  useEffect(() => {
-    if (!playing) return;
-    const startedAt = performance.now() - playbackMs;
-    let frame = 0;
-    const tick = (now: number) => {
-      const duration = editor.document.timeline?.durationMs ?? 6000;
-      const next = now - startedAt;
-      if (next >= duration) {
-        setPlaybackMs(duration);
-        setPlaying(false);
-        return;
-      }
-      setPlaybackMs(next);
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [editor.document.timeline?.durationMs, playbackMs, playing]);
-
-  const addLayer = (type: "text" | "shape" | "image") => {
+  const addLayer = (type: "text" | "shape" | "image" | "countdown") => {
     const id = `${type}-${crypto.randomUUID()}`;
     const base = {
       id,
-      name: type === "text" ? "Yangi matn" : type === "shape" ? "Yangi shakl" : "Yangi rasm",
+      name:
+        type === "text"
+          ? "Yangi matn"
+          : type === "shape"
+            ? "Yangi shakl"
+            : type === "countdown"
+              ? "To'ygacha sanoq"
+              : "Yangi rasm",
       x: 290,
       y: 780,
       width: 500,
-      height: type === "text" ? 160 : 360,
+      height: type === "text" ? 160 : type === "countdown" ? 260 : 360,
       rotation: 0,
       opacity: 1,
       locked: false,
       visible: true,
       permissions: { ...defaultLayerPermissions }
     };
-    const layer: TemplateLayer =
-      type === "text"
+    let layer: TemplateLayer;
+    if (type === "countdown") {
+      layer = {
+        ...base,
+        type,
+        x: 140,
+        y: 1320,
+        width: 800,
+        height: 260,
+        title: "Bizning unutilmas kunimizgacha",
+        titleColor: "#7d6a49",
+        titleFontFamily: "Cormorant Garamond",
+        titleFontSize: 28,
+        titleFontWeight: 600,
+        titleLetterSpacing: 1,
+        titleAlign: "center",
+        titleMarginBottom: 12,
+        color: "#173f31",
+        labelColor: "#7d6a49",
+        panelColor: "#fffdf8",
+        fontFamily: "Cormorant Garamond",
+        valueFontSize: 72,
+        valueFontWeight: 700,
+        labelFontSize: 22,
+        labelFontWeight: 500,
+        labelLetterSpacing: 0,
+        gap: 14,
+        radius: 22,
+        panelStroke: "#ded4c4",
+        panelStrokeWidth: 1,
+        showSeconds: true,
+        timezoneOffsetMinutes: 300,
+        permissions: {
+          editable: false,
+          movable: false,
+          resizable: false,
+          rotatable: false,
+          deletable: false,
+          styleEditable: false,
+          cropEditable: false
+        }
+      };
+    } else {
+      layer =
+        type === "text"
         ? {
             ...base,
             type,
@@ -194,6 +228,7 @@ export function TemplateStudioClient() {
               fit: "cover",
               radius: 24
             };
+    }
     editor.commitDocument({ ...editor.documentRef.current, layers: [...editor.documentRef.current.layers, layer] });
     editor.setSelectedLayerIds([id]);
   };
@@ -295,8 +330,9 @@ export function TemplateStudioClient() {
   const saveTemplate = async () => {
     setIsSaving(true);
     setSaveState("idle");
+    setSaveError("");
     try {
-      let previewImageUrl = "";
+      let previewImageUrl = initialTemplate?.previewImageUrl ?? "";
       const dataUrl = exportCanvasRef.current?.();
       if (dataUrl) {
         try {
@@ -305,28 +341,40 @@ export function TemplateStudioClient() {
             new File([blob], `preview-${Date.now()}.png`, { type: "image/png" }),
             "library"
           );
-          previewImageUrl = preview?.url ?? "";
+          previewImageUrl = preview?.url ?? previewImageUrl;
         } catch {
-          previewImageUrl = "";
+          previewImageUrl = initialTemplate?.previewImageUrl ?? "";
         }
       }
-      const response = await fetch("/api/templates", {
-        method: "POST",
+      const endpoint = initialTemplate
+        ? `/api/admin/templates/${encodeURIComponent(initialTemplate.id)}`
+        : "/api/templates";
+      const response = await fetch(endpoint, {
+        method: initialTemplate ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           description,
           previewImageUrl,
-          status: "active",
-          designDocument: editor.document
+          status,
+          designDocument: editor.document,
+          ...(initialTemplate ? { revision } : {})
         })
       });
-      if (!response.ok) throw new Error("Template saqlanmadi");
+      const result = await response.json() as { template?: InvitationTemplate; message?: string };
+      if (response.status === 409) {
+        throw new Error(result.message ?? "Template boshqa oynada yangilangan. Sahifani yangilang.");
+      }
+      if (!response.ok || !result.template) throw new Error(result.message ?? "Template saqlanmadi");
+      setRevision(result.template.revision ?? revision);
       setSaveState("saved");
-      router.push("/admin");
+      if (!initialTemplate) {
+        router.push(`/admin/templates/${encodeURIComponent(result.template.id)}/edit`);
+      }
       router.refresh();
-    } catch {
+    } catch (error) {
       setSaveState("error");
+      setSaveError(error instanceof Error ? error.message : "Template saqlanmadi");
     } finally {
       setIsSaving(false);
     }
@@ -361,13 +409,16 @@ export function TemplateStudioClient() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className={cn(
-            "hidden text-xs sm:block",
-            saveState === "saved" && "text-emerald-300",
-            saveState === "error" && "text-red-300",
-            saveState === "idle" && "text-white/35"
-          )}>
-            {saveState === "saved" ? "Saved" : saveState === "error" ? "Save error" : "Draft"}
+          <span
+            title={saveError || undefined}
+            className={cn(
+              "hidden max-w-64 truncate text-xs sm:block",
+              saveState === "saved" && "text-emerald-300",
+              saveState === "error" && "text-red-300",
+              saveState === "idle" && "text-white/35"
+            )}
+          >
+            {saveState === "saved" ? "Saqlandi" : saveState === "error" ? saveError || "Save error" : initialTemplate ? `Revision ${revision}` : "Draft"}
           </span>
           <Button
             type="button"
@@ -436,6 +487,9 @@ export function TemplateStudioClient() {
               snapToGrid={snapToGrid}
               scale={zoom}
               playbackMs={playbackMs}
+              playing={playing}
+              onPlaybackTick={setPlaybackMs}
+              onPlaybackEnd={finishPlayback}
               onSelectLayers={editor.setSelectedLayerIds}
               onChangeLayer={(id, patch) => editor.updateLayer(id, patch, true)}
               onInteractionEnd={editor.commitCurrentInteraction}
@@ -481,7 +535,7 @@ export function TemplateStudioClient() {
             <LayerInspector layer={selectedLayer} onChange={(patch) => editor.updateLayer(selectedLayer.id, patch)} />
           ) : editor.selectedLayers.length > 1 ? (
             <MultiInspector
-              count={editor.selectedLayers.length}
+              layers={editor.selectedLayers}
               onAlign={editor.alignSelected}
               onDistribute={editor.distributeSelected}
               onGroup={editor.groupSelected}
@@ -490,9 +544,11 @@ export function TemplateStudioClient() {
             <DocumentInspector
               name={name}
               description={description}
+              status={status}
               document={editor.document}
               onName={setName}
               onDescription={setDescription}
+              onStatus={setStatus}
               onChange={editor.commitDocument}
               onUploadBackground={(file) => void uploadAsset(file, "background")}
               isUploading={isUploading}
@@ -508,7 +564,7 @@ function ElementsPanel({
   addLayer,
   addOrnament
 }: {
-  addLayer: (type: "text" | "shape" | "image") => void;
+  addLayer: (type: "text" | "shape" | "image" | "countdown") => void;
   addOrnament: (preset: (typeof ornamentPresets)[number]) => void;
 }) {
   return (
@@ -518,6 +574,7 @@ function ElementsPanel({
         <ToolButton icon={<Type />} label="Matn" onClick={() => addLayer("text")} />
         <ToolButton icon={<Square />} label="Shakl" onClick={() => addLayer("shape")} />
         <ToolButton icon={<ImagePlus />} label="Rasm" onClick={() => addLayer("image")} />
+        <ToolButton icon={<Timer />} label="Countdown" onClick={() => addLayer("countdown")} />
       </div>
       <div className="mt-7">
         <SectionTitle title="Atelier collection" subtitle="Premium wedding ornaments" />
@@ -677,6 +734,7 @@ function LayerInspector({
       {layer.type === "shape" ? <ShapeInspector layer={layer} onChange={onChange} /> : null}
       {layer.type === "image" ? <ImageInspector layer={layer} onChange={onChange} /> : null}
       {layer.type === "ornament" ? <OrnamentInspector layer={layer} onChange={onChange} /> : null}
+      {layer.type === "countdown" ? <CountdownInspector layer={layer} onChange={onChange} /> : null}
 
       <InspectorSection title="User permissions">
         <div className="grid grid-cols-2 gap-2">
@@ -714,9 +772,7 @@ function TextInspector({ layer, onChange }: { layer: TemplateTextLayer; onChange
         <NumberField label="Font size" value={layer.fontSize} min={8} onChange={(fontSize) => onChange({ fontSize })} />
       </div>
       <Label className="mt-3 block">Font</Label>
-      <select value={layer.fontFamily} onChange={(event) => onChange({ fontFamily: event.target.value })} className="mt-2 h-10 w-full rounded-md border border-[#d9cdb9] bg-white px-3 text-sm">
-        {fonts.map((font) => <option key={font}>{font}</option>)}
-      </select>
+      <FontPicker className="mt-2" value={layer.fontFamily} onChange={(fontFamily) => onChange({ fontFamily })} />
       <Label className="mt-3 block">Data binding</Label>
       <select value={layer.binding ?? ""} onChange={(event) => onChange({ binding: event.target.value ? event.target.value as TemplateTextLayer["binding"] : undefined })} className="mt-2 h-10 w-full rounded-md border border-[#d9cdb9] bg-white px-3 text-sm">
         <option value="">Static matn</option>
@@ -781,22 +837,80 @@ function OrnamentInspector({ layer, onChange }: { layer: TemplateOrnamentLayer; 
   );
 }
 
+function CountdownInspector({
+  layer,
+  onChange
+}: {
+  layer: TemplateCountdownLayer;
+  onChange: (patch: Partial<TemplateCountdownLayer>) => void;
+}) {
+  return (
+    <InspectorSection title="Countdown">
+      <Label>Sarlavha</Label>
+      <Input className="mt-2 bg-white" value={layer.title} onChange={(event) => onChange({ title: event.target.value })} />
+      <div className="mt-4 rounded-xl border border-[#ded4c4] bg-white/55 p-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a744c]">Sarlavha stili</p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <ColorField label="Sarlavha rangi" value={layer.titleColor} onChange={(titleColor) => onChange({ titleColor })} />
+          <NumberField label="Font size" value={layer.titleFontSize} min={8} onChange={(titleFontSize) => onChange({ titleFontSize })} />
+          <NumberField label="Font weight" value={layer.titleFontWeight} min={100} max={900} onChange={(titleFontWeight) => onChange({ titleFontWeight })} />
+          <NumberField label="Letter spacing" value={layer.titleLetterSpacing} onChange={(titleLetterSpacing) => onChange({ titleLetterSpacing })} />
+          <NumberField label="Pastki masofa" value={layer.titleMarginBottom} min={0} onChange={(titleMarginBottom) => onChange({ titleMarginBottom })} />
+        </div>
+        <Label className="mt-3 block">Sarlavha fonti</Label>
+        <FontPicker className="mt-2" value={layer.titleFontFamily} onChange={(titleFontFamily) => onChange({ titleFontFamily })} />
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {(["left", "center", "right"] as const).map((titleAlign) => (
+            <button key={titleAlign} type="button" onClick={() => onChange({ titleAlign })} className={cn("grid h-9 place-items-center rounded-md border", layer.titleAlign === titleAlign ? "border-[#98763e] bg-[#eaddc5]" : "border-[#ded4c4] bg-white")}>
+              {titleAlign === "left" ? <AlignLeft className="h-4 w-4" /> : titleAlign === "center" ? <AlignCenter className="h-4 w-4" /> : <AlignRight className="h-4 w-4" />}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a744c]">Raqam va label</p>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <ColorField label="Raqam rangi" value={layer.color} onChange={(color) => onChange({ color })} />
+        <ColorField label="Label rangi" value={layer.labelColor} onChange={(labelColor) => onChange({ labelColor })} />
+        <ColorField label="Panel rangi" value={layer.panelColor.startsWith("#") ? layer.panelColor : "#ffffff"} onChange={(panelColor) => onChange({ panelColor })} />
+        <ColorField label="Panel border" value={layer.panelStroke.startsWith("#") ? layer.panelStroke : "#ded4c4"} onChange={(panelStroke) => onChange({ panelStroke })} />
+        <NumberField label="Raqam size" value={layer.valueFontSize} min={12} onChange={(valueFontSize) => onChange({ valueFontSize })} />
+        <NumberField label="Raqam weight" value={layer.valueFontWeight} min={100} max={900} onChange={(valueFontWeight) => onChange({ valueFontWeight })} />
+        <NumberField label="Label size" value={layer.labelFontSize} min={8} onChange={(labelFontSize) => onChange({ labelFontSize })} />
+        <NumberField label="Label weight" value={layer.labelFontWeight} min={100} max={900} onChange={(labelFontWeight) => onChange({ labelFontWeight })} />
+        <NumberField label="Label spacing" value={layer.labelLetterSpacing} onChange={(labelLetterSpacing) => onChange({ labelLetterSpacing })} />
+        <NumberField label="Gap" value={layer.gap} min={0} onChange={(gap) => onChange({ gap })} />
+        <NumberField label="Radius" value={layer.radius} min={0} onChange={(radius) => onChange({ radius })} />
+        <NumberField label="Border width" value={layer.panelStrokeWidth} min={0} onChange={(panelStrokeWidth) => onChange({ panelStrokeWidth })} />
+      </div>
+      <Label className="mt-3 block">Font</Label>
+      <FontPicker className="mt-2" value={layer.fontFamily} onChange={(fontFamily) => onChange({ fontFamily })} />
+      <label className="mt-3 flex items-center gap-2 rounded-lg border border-[#ded4c4] bg-white px-3 py-2 text-xs font-medium">
+        <input type="checkbox" checked={layer.showSeconds} onChange={(event) => onChange({ showSeconds: event.target.checked })} />
+        Soniyani ko‘rsatish
+      </label>
+    </InspectorSection>
+  );
+}
+
 function MultiInspector({
-  count,
+  layers,
   onAlign,
   onDistribute,
   onGroup
 }: {
-  count: number;
+  layers: TemplateLayer[];
   onAlign: (mode: "left" | "center" | "right" | "top" | "middle" | "bottom") => void;
   onDistribute: (axis: "horizontal" | "vertical") => void;
   onGroup: () => void;
 }) {
+  const horizontalDistributed = isDistributed(layers, "horizontal");
+  const verticalDistributed = isDistributed(layers, "vertical");
+
   return (
     <div className="space-y-6 p-5">
       <div>
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#937440]">Multi selection</p>
-        <h2 className="mt-1 font-['Cormorant_Garamond'] text-2xl font-bold">{count} layer tanlandi</h2>
+        <h2 className="mt-1 font-['Cormorant_Garamond'] text-2xl font-bold">{layers.length} layer tanlandi</h2>
       </div>
       <InspectorSection title="Align">
         <div className="grid grid-cols-3 gap-2">
@@ -807,8 +921,24 @@ function MultiInspector({
       </InspectorSection>
       <InspectorSection title="Distribute">
         <div className="grid grid-cols-2 gap-2">
-          <Button type="button" variant="outline" onClick={() => onDistribute("horizontal")}><AlignHorizontalDistributeCenter className="h-4 w-4" /> Horizontal</Button>
-          <Button type="button" variant="outline" onClick={() => onDistribute("vertical")}><AlignVerticalDistributeCenter className="h-4 w-4" /> Vertical</Button>
+          <Button
+            type="button"
+            variant="outline"
+            aria-pressed={horizontalDistributed}
+            className={cn(horizontalDistributed && "border-[#98763e] bg-[#eaddc5] text-[#4b3a20] hover:bg-[#eaddc5]")}
+            onClick={() => onDistribute("horizontal")}
+          >
+            <AlignHorizontalDistributeCenter className="h-4 w-4" /> Horizontal
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            aria-pressed={verticalDistributed}
+            className={cn(verticalDistributed && "border-[#98763e] bg-[#eaddc5] text-[#4b3a20] hover:bg-[#eaddc5]")}
+            onClick={() => onDistribute("vertical")}
+          >
+            <AlignVerticalDistributeCenter className="h-4 w-4" /> Vertical
+          </Button>
         </div>
       </InspectorSection>
       <Button type="button" className="w-full" onClick={onGroup}><Group className="h-4 w-4" /> Group</Button>
@@ -816,21 +946,36 @@ function MultiInspector({
   );
 }
 
+function isDistributed(layers: TemplateLayer[], axis: "horizontal" | "vertical") {
+  if (layers.length < 3) return false;
+  const positions = layers
+    .map((layer) => axis === "horizontal" ? layer.x : layer.y)
+    .sort((a, b) => a - b);
+  const gap = positions[1] - positions[0];
+  return positions.slice(2).every((position, index) =>
+    Math.abs(position - positions[index + 1] - gap) < 1
+  );
+}
+
 function DocumentInspector({
   name,
   description,
+  status,
   document,
   onName,
   onDescription,
+  onStatus,
   onChange,
   onUploadBackground,
   isUploading
 }: {
   name: string;
   description: string;
+  status: "active" | "inactive";
   document: ReturnType<typeof cloneStarterTemplateDocument>;
   onName: (value: string) => void;
   onDescription: (value: string) => void;
+  onStatus: (value: "active" | "inactive") => void;
   onChange: (document: ReturnType<typeof cloneStarterTemplateDocument>) => void;
   onUploadBackground: (file?: File) => void;
   isUploading: boolean;
@@ -846,6 +991,15 @@ function DocumentInspector({
         <Input className="mt-2 bg-white" value={name} onChange={(event) => onName(event.target.value)} />
         <Label className="mt-3 block">Tavsif</Label>
         <Textarea className="mt-2 bg-white" value={description} onChange={(event) => onDescription(event.target.value)} />
+        <Label className="mt-3 block">Status</Label>
+        <select
+          value={status}
+          onChange={(event) => onStatus(event.target.value as "active" | "inactive")}
+          className="mt-2 h-10 w-full rounded-md border border-[#d9cdb9] bg-white px-3 text-sm"
+        >
+          <option value="active">Aktiv</option>
+          <option value="inactive">Noaktiv</option>
+        </select>
       </InspectorSection>
       <InspectorSection title="Canvas">
         <ColorField label="Fon rangi" value={document.background.startsWith("#") ? document.background : "#fffaf2"} onChange={(background) => onChange({ ...document, background })} />
@@ -945,5 +1099,6 @@ function LayerIcon({ layer }: { layer: TemplateLayer }) {
   if (layer.type === "text") return <Type className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
   if (layer.type === "image") return <ImagePlus className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
   if (layer.type === "ornament") return <Flower2 className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
+  if (layer.type === "countdown") return <Timer className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
   return <Square className="h-3.5 w-3.5 shrink-0 text-[#d5b975]" />;
 }
