@@ -8,6 +8,7 @@ import type {
   Invitation,
   InvitationTemplate,
   Rsvp,
+  TemplateDocument,
   WeddingFormData
 } from "@/types";
 
@@ -23,6 +24,7 @@ type TemplateInput = {
   name: string;
   description: string;
   previewImageUrl?: string | null;
+  designDocument?: TemplateDocument | null;
   status: "active" | "inactive";
 };
 
@@ -73,6 +75,7 @@ function templateToRow(template: InvitationTemplate) {
     description: template.description,
     preview_image_url: template.previewImageUrl,
     template_schema: template.schema,
+    design_document: template.designDocument,
     status: template.status
   };
 }
@@ -100,6 +103,7 @@ function templateFromRow(row: Record<string, any>): InvitationTemplate {
     description: row.description,
     previewImageUrl: row.preview_image_url,
     schema: row.template_schema,
+    designDocument: row.design_document ?? null,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -127,6 +131,7 @@ function invitationFromRow(row: Record<string, any>): Invitation {
     templateId: row.template_id,
     slug: row.slug,
     formData: row.form_data,
+    designDocument: row.design_document ?? null,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -284,12 +289,18 @@ export async function getInvitationForUser(invitationId: string, userId: string)
 export async function createInvitation(userId: string, templateId: string, formData: WeddingFormData) {
   const supabase = supabaseOrNull();
   if (supabase) {
+    const { data: template } = await supabase
+      .from("templates")
+      .select("design_document")
+      .eq("id", templateId)
+      .single();
     const { data, error } = await supabase
       .from("invitations")
       .insert({
         user_id: userId,
         template_id: templateId,
         form_data: formData,
+        design_document: template?.design_document ?? null,
         status: "draft"
       })
       .select("*, templates(*)")
@@ -298,27 +309,36 @@ export async function createInvitation(userId: string, templateId: string, formD
     return invitationFromRow(data);
   }
 
+  const template = memory.templates.find((item) => item.id === templateId);
   const invitation: Invitation = {
     id: id(),
     userId,
     templateId,
     slug: null,
     formData,
+    designDocument: template?.designDocument ? structuredClone(template.designDocument) : null,
     status: "draft",
     createdAt: now(),
     updatedAt: now(),
-    template: memory.templates.find((template) => template.id === templateId)
+    template
   };
   memory.invitations.unshift(invitation);
   return invitation;
 }
 
-export async function updateInvitation(invitationId: string, userId: string, formData: WeddingFormData) {
+export async function updateInvitation(
+  invitationId: string,
+  userId: string,
+  formData: WeddingFormData,
+  designDocument?: TemplateDocument | null
+) {
   const supabase = supabaseOrNull();
   if (supabase) {
+    const changes: Record<string, unknown> = { form_data: formData, updated_at: now() };
+    if (designDocument !== undefined) changes.design_document = designDocument;
     const { data, error } = await supabase
       .from("invitations")
-      .update({ form_data: formData, updated_at: now() })
+      .update(changes)
       .eq("id", invitationId)
       .eq("user_id", userId)
       .select("*, templates(*)")
@@ -330,6 +350,7 @@ export async function updateInvitation(invitationId: string, userId: string, for
   const invitation = memory.invitations.find((item) => item.id === invitationId && item.userId === userId);
   if (!invitation) return null;
   invitation.formData = formData;
+  if (designDocument !== undefined) invitation.designDocument = designDocument;
   invitation.updatedAt = now();
   return invitation;
 }
@@ -627,6 +648,7 @@ export async function createTemplate(input: TemplateInput) {
         description: input.description,
         preview_image_url: input.previewImageUrl || null,
         template_schema: weddingTemplateFields,
+        design_document: input.designDocument ?? null,
         status: input.status
       })
       .select("*")
@@ -642,6 +664,7 @@ export async function createTemplate(input: TemplateInput) {
     description: input.description,
     previewImageUrl: input.previewImageUrl || null,
     schema: weddingTemplateFields,
+    designDocument: input.designDocument ?? null,
     status: input.status,
     createdAt: now(),
     updatedAt: now()
@@ -659,6 +682,7 @@ export async function updateTemplate(templateId: string, input: Partial<Template
         name: input.name,
         description: input.description,
         preview_image_url: input.previewImageUrl,
+        design_document: input.designDocument,
         status: input.status,
         updated_at: now()
       })

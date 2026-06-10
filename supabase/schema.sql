@@ -25,6 +25,7 @@ create table public.templates (
   description text not null,
   preview_image_url text,
   template_schema jsonb not null,
+  design_document jsonb,
   status public.template_status not null default 'active',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -36,6 +37,7 @@ create table public.invitations (
   template_id text not null references public.templates(id),
   slug text unique,
   form_data jsonb not null,
+  design_document jsonb,
   status public.invitation_status not null default 'draft',
   published_at timestamptz,
   created_at timestamptz not null default now(),
@@ -125,7 +127,8 @@ from wedding_schema,
   ('garden-bloom', 'Garden Bloom', 'Flower ring, leaf drift, bog''cha tile kompozitsiyasi.'),
   ('silk-lilac', 'Silk Lilac', 'Magazine editorial flow, silk texture va diagonal story block.'),
   ('desert-saffron', 'Desert Saffron', 'Scroll parchment markazi, sand-line motion va sharqona date marks.'),
-  ('ocean-glass', 'Ocean Glass', 'Glassmorphism panel, shimmer motion va pill-shaped info rows.')
+  ('ocean-glass', 'Ocean Glass', 'Glassmorphism panel, shimmer motion va pill-shaped info rows.'),
+  ('velvet-ruby', 'Velvet Ruby', 'Ruby velvet theatre invite, gold ticket panel, dramatic monogram va ceremony lights.')
 ) as template(id, name, description)
 on conflict (id) do update set
   name = excluded.name,

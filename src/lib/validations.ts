@@ -1,5 +1,126 @@
 import { z } from "zod";
 
+const layerPermissionsSchema = z.object({
+  editable: z.boolean(),
+  movable: z.boolean(),
+  resizable: z.boolean(),
+  rotatable: z.boolean(),
+  deletable: z.boolean(),
+  styleEditable: z.boolean()
+});
+
+const layerBaseSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  rotation: z.number(),
+  opacity: z.number().min(0).max(1),
+  locked: z.boolean(),
+  visible: z.boolean(),
+  permissions: layerPermissionsSchema.optional(),
+  shadow: z
+    .object({
+      color: z.string().min(1),
+      blur: z.number().min(0),
+      x: z.number(),
+      y: z.number()
+    })
+    .optional(),
+  blur: z.number().min(0).optional()
+});
+
+const textLayerSchema = layerBaseSchema.extend({
+  type: z.literal("text"),
+  text: z.string(),
+  binding: z
+    .enum([
+      "brideName",
+      "groomName",
+      "eventDate",
+      "eventTime",
+      "venueName",
+      "venueAddress",
+      "hostText",
+      "coverImageUrl",
+      "musicUrl"
+    ])
+    .optional(),
+  color: z.string().min(1),
+  fontFamily: z.string().min(1),
+  fontSize: z.number().positive(),
+  fontWeight: z.number().min(100).max(900),
+  lineHeight: z.number().positive(),
+  letterSpacing: z.number(),
+  align: z.enum(["left", "center", "right"])
+});
+
+const shapeLayerSchema = layerBaseSchema.extend({
+  type: z.literal("shape"),
+  fill: z.string().min(1),
+  stroke: z.string(),
+  strokeWidth: z.number().min(0),
+  radius: z.number().min(0),
+  backgroundImage: z
+    .object({
+      src: z.string().url(),
+      fit: z.enum(["cover", "contain"]),
+      position: z.enum(["center", "top", "bottom"]),
+      opacity: z.number().min(0).max(1)
+    })
+    .optional()
+});
+
+const imageLayerSchema = layerBaseSchema.extend({
+  type: z.literal("image"),
+  src: z.string(),
+  binding: z.literal("coverImageUrl").optional(),
+  fit: z.enum(["cover", "contain"]),
+  radius: z.number().min(0)
+});
+
+const ornamentLayerSchema = layerBaseSchema.extend({
+  type: z.literal("ornament"),
+  ornament: z.enum([
+    "floral-corner",
+    "olive-branch",
+    "royal-divider",
+    "islamic-arch",
+    "art-deco-fan",
+    "sparkle-cluster",
+    "wax-seal",
+    "double-ring"
+  ]),
+  color: z.string().min(1),
+  secondaryColor: z.string().min(1),
+  strokeWidth: z.number().positive()
+});
+
+const designDocumentSchema = z.object({
+  version: z.literal(1),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  background: z.string().min(1),
+  backgroundImage: z
+    .object({
+      src: z.string().url(),
+      fit: z.enum(["cover", "contain"]),
+      position: z.enum(["center", "top", "bottom"]),
+      opacity: z.number().min(0).max(1)
+    })
+    .optional(),
+  layers: z.array(
+    z.discriminatedUnion("type", [
+      textLayerSchema,
+      shapeLayerSchema,
+      imageLayerSchema,
+      ornamentLayerSchema
+    ])
+  )
+});
+
 export const weddingFormSchema = z.object({
   brideName: z.string().min(2, "Kelin ismi kamida 2 ta belgidan iborat bo'lishi kerak"),
   groomName: z.string().min(2, "Kuyov ismi kamida 2 ta belgidan iborat bo'lishi kerak"),
@@ -25,13 +146,15 @@ export const createInvitationSchema = z.object({
 });
 
 export const updateInvitationSchema = z.object({
-  formData: weddingFormSchema
+  formData: weddingFormSchema,
+  designDocument: designDocumentSchema.nullable().optional()
 });
 
 export const templateSchema = z.object({
   name: z.string().min(2),
   description: z.string().min(5),
   previewImageUrl: z.string().url().optional().or(z.literal("")),
+  designDocument: designDocumentSchema.optional(),
   status: z.enum(["active", "inactive"]).default("active")
 });
 

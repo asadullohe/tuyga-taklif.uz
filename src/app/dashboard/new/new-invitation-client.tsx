@@ -7,15 +7,12 @@ import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Save } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Badge } from "@/components/ui/badge";
 import { InvitationPreview } from "@/components/invitation-preview";
-import { VenuePicker } from "@/components/venue-picker";
+import { TemplateFormFields } from "@/components/template-form-fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { defaultWeddingData } from "@/lib/templates";
-import { findVenueOption } from "@/lib/venues";
 import { weddingFormSchema, type WeddingFormInput } from "@/lib/validations";
 import type { InvitationTemplate } from "@/types";
 
@@ -32,7 +29,6 @@ export function NewInvitationClient({ templates }: { templates: InvitationTempla
     defaultValues: defaultWeddingData
   });
   const previewData = form.watch();
-  const selectedVenue = findVenueOption(previewData.venueName, previewData.venueAddress);
 
   const mutation = useMutation({
     mutationFn: async (values: WeddingFormInput) => {
@@ -67,7 +63,9 @@ export function NewInvitationClient({ templates }: { templates: InvitationTempla
           <Card>
             <CardHeader>
               <CardTitle>Template tanlash</CardTitle>
-              <CardDescription>MVP hozircha to'y kategoriyasi bilan boshlanadi.</CardDescription>
+              <CardDescription>
+                User template tanlaydi, keyin faqat ruxsat berilgan joylarni sayt ichida tahrirlaydi.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-2">
               {templates.map((template) => (
@@ -75,12 +73,28 @@ export function NewInvitationClient({ templates }: { templates: InvitationTempla
                   key={template.id}
                   type="button"
                   onClick={() => setTemplateId(template.id)}
-                  className={`rounded-lg border p-4 text-left transition ${
-                    templateId === template.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                  className={`group overflow-hidden rounded-lg border bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                    templateId === template.id ? "border-primary ring-2 ring-primary/15" : "hover:bg-muted/20"
                   }`}
                 >
-                  <p className="font-semibold">{template.name}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{template.description}</p>
+                  <div className={`h-28 ${getTemplateSwatch(template.id)}`} />
+                  <div className="space-y-2 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-semibold">{template.name}</p>
+                      <Badge className="bg-emerald-50 text-emerald-700">Premium</Badge>
+                    </div>
+                    <p className="text-sm leading-5 text-muted-foreground">{template.description}</p>
+                    <p className="text-xs font-semibold text-emerald-700">
+                      {template.schema.length} ta editable maydon
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getTemplateTags(template.id).map((tag) => (
+                        <span key={tag} className="rounded-md bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </button>
               ))}
             </CardContent>
@@ -88,74 +102,62 @@ export function NewInvitationClient({ templates }: { templates: InvitationTempla
 
           <Card>
             <CardHeader>
-              <CardTitle>Taklifnoma ma'lumotlari</CardTitle>
+              <CardTitle>Template editor</CardTitle>
               <CardDescription>Maydonlar o'zgarganda preview darhol yangilanadi.</CardDescription>
             </CardHeader>
             <CardContent>
               <form
                 id="invitation-form"
-                className="grid gap-4 md:grid-cols-2"
+                className="space-y-4"
                 onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
               >
-                <Field label="Kuyov ismi" error={form.formState.errors.groomName?.message}>
-                  <Input {...form.register("groomName")} />
-                </Field>
-                <Field label="Kelin ismi" error={form.formState.errors.brideName?.message}>
-                  <Input {...form.register("brideName")} />
-                </Field>
-                <Field label="Sana" error={form.formState.errors.eventDate?.message}>
-                  <Input type="date" {...form.register("eventDate")} />
-                </Field>
-              <Field label="Vaqt" error={form.formState.errors.eventTime?.message}>
-                <Input type="time" {...form.register("eventTime")} />
-              </Field>
-              <Field label="Rasm URL" error={form.formState.errors.coverImageUrl?.message}>
-                <Input {...form.register("coverImageUrl")} />
-              </Field>
-              <VenuePicker
-                selectedId={selectedVenue?.id}
-                onSelect={(venue) => {
-                  form.setValue("venueName", venue.name, { shouldDirty: true, shouldValidate: true });
-                  form.setValue("venueAddress", venue.address, { shouldDirty: true, shouldValidate: true });
-                }}
-              />
-              <div className="md:col-span-2 rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-                Tanlangan manzil: <span className="font-semibold text-foreground">{previewData.venueName}</span> ·{" "}
-                {previewData.venueAddress}
-              </div>
-              <Field label="Taklif matni" className="md:col-span-2" error={form.formState.errors.hostText?.message}>
-                <Textarea {...form.register("hostText")} />
-              </Field>
-                {mutation.isError ? <p className="text-sm text-destructive md:col-span-2">Saqlashda xatolik.</p> : null}
+                {selectedTemplate ? <TemplateFormFields form={form} fields={selectedTemplate.schema} /> : null}
+                {mutation.isError ? <p className="text-sm text-destructive">Saqlashda xatolik.</p> : null}
               </form>
             </CardContent>
           </Card>
         </div>
 
         <aside className="lg:sticky lg:top-6 lg:self-start">
-          <InvitationPreview data={previewData} variant={selectedTemplate?.id} />
+          <InvitationPreview
+            data={previewData}
+            variant={selectedTemplate?.id}
+            designDocument={selectedTemplate?.designDocument}
+          />
         </aside>
       </div>
     </main>
   );
 }
 
-function Field({
-  label,
-  error,
-  className,
-  children
-}: {
-  label: string;
-  error?: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={className}>
-      <Label>{label}</Label>
-      <div className="mt-2">{children}</div>
-      {error ? <p className="mt-1 text-sm text-destructive">{error}</p> : null}
-    </div>
-  );
+function getTemplateTags(id: string) {
+  if (id.includes("fotiha")) return ["Fotiha", "Blue", "Formal"];
+  if (id.includes("anniversary")) return ["Yubiley", "Midnight", "Gold"];
+  if (id.includes("editorial-mono")) return ["Nikoh", "Editorial", "Mono"];
+  if (id.includes("blush-photo")) return ["Nikoh", "Photo", "Blush"];
+  if (id.includes("emerald-arch")) return ["Nikoh", "Emerald", "Gold"];
+  if (id.includes("collage")) return ["Photo", "Collage", "Luxury"];
+  if (id.includes("velvet")) return ["Ruby", "Gold", "Dramatic"];
+  if (id.includes("noor") || id.includes("emerald")) return ["Gold", "Ornament", "Formal"];
+  if (id.includes("minimal")) return ["Editorial", "Clean", "Typography"];
+  if (id.includes("garden")) return ["Botanical", "Soft", "Photo"];
+  if (id.includes("midnight")) return ["Noir", "Gold", "Evening"];
+  if (id.includes("silk") || id.includes("pearl")) return ["Soft luxury", "Photo", "Pearl"];
+  return ["Wedding", "Premium", "Ready"];
+}
+
+function getTemplateSwatch(id: string) {
+  if (id.includes("blue-fotiha")) return "bg-[radial-gradient(circle_at_50%_45%,#f6f2e9_0_34%,transparent_35%),linear-gradient(135deg,#102b4e,#294f72)]";
+  if (id.includes("midnight-anniversary")) return "bg-[radial-gradient(circle_at_50%_42%,#caa45d_0_14%,transparent_15%),radial-gradient(circle_at_50%_42%,transparent_0_36%,#6d5936_37%_38%,transparent_39%),#111018]";
+  if (id.includes("editorial-mono")) return "bg-[linear-gradient(90deg,#161616_0_20%,#f3efe6_20%_100%)]";
+  if (id.includes("blush-photo")) return "bg-[radial-gradient(circle_at_50%_42%,#9c5360_0_24%,#fffaf5_25%_50%,#f2dfe1_51%)]";
+  if (id.includes("emerald-arch")) return "bg-[radial-gradient(circle_at_50%_45%,#f6eddb_0_34%,#0b483b_35%_72%,#07372d_73%)]";
+  if (id.includes("velvet")) return "bg-[radial-gradient(circle_at_50%_12%,rgba(216,170,88,.72),transparent_22%),linear-gradient(135deg,#2a0610,#8f1730_52%,#1b0710)]";
+  if (id.includes("emerald")) return "bg-[radial-gradient(circle_at_50%_0%,rgba(215,180,106,.55),transparent_35%),linear-gradient(135deg,#06281f,#114537)]";
+  if (id.includes("midnight")) return "bg-[radial-gradient(circle_at_75%_18%,rgba(240,195,111,.7),transparent_18%),linear-gradient(135deg,#020617,#13213b)]";
+  if (id.includes("collage")) return "bg-[linear-gradient(135deg,#6e4b2c,#e9d2b2_46%,#fffaf4)]";
+  if (id.includes("garden")) return "bg-[radial-gradient(circle_at_20%_20%,rgba(247,167,181,.65),transparent_20%),linear-gradient(135deg,#dcefdc,#fff8ef,#cfe9d6)]";
+  if (id.includes("silk") || id.includes("pearl")) return "bg-[radial-gradient(circle_at_78%_16%,rgba(244,180,196,.65),transparent_24%),linear-gradient(135deg,#fffaf7,#eadfeb,#d9c3db)]";
+  if (id.includes("minimal")) return "bg-[linear-gradient(90deg,rgba(17,17,17,.08)_1px,transparent_1px),linear-gradient(180deg,rgba(17,17,17,.08)_1px,transparent_1px),linear-gradient(135deg,#fffdf8,#e9dfd0)] bg-[length:22px_22px,22px_22px,auto]";
+  return "bg-[linear-gradient(135deg,#fffaf4,#f6e7c7,#f9e8ee)]";
 }

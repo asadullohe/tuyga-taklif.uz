@@ -238,6 +238,14 @@
   background: linear-gradient(90deg, transparent, currentColor, transparent);
 }
 
+.velvet-sparks .invite-particle {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: radial-gradient(circle, currentColor 0 36%, transparent 38%);
+  box-shadow: 0 0 18px currentColor;
+}
+
 .invite-theme-midnight-starry .invite-card {
   border-color: rgba(246, 199, 111, 0.32);
 }
@@ -1062,6 +1070,75 @@
   }
 }
 
+.invite-theme-photo-collage .invite-layout-collage {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 255, 255, 0.72), transparent 18%),
+    linear-gradient(180deg, #fffaf2, #ead9bd);
+  color: var(--invite-ink);
+}
+
+.invite-theme-photo-collage .invite-collage-titleblock {
+  align-items: flex-start;
+  padding-bottom: 18px;
+}
+
+.invite-theme-photo-collage .invite-collage-titleblock h1 {
+  letter-spacing: 0;
+}
+
+.invite-theme-photo-collage .invite-collage-photo {
+  border: 1px solid rgba(184, 137, 69, 0.28);
+}
+
+.invite-theme-modern-minimal .invite-layout-minimal {
+  background:
+    linear-gradient(90deg, rgba(17, 17, 17, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17, 17, 17, 0.05) 1px, transparent 1px),
+    linear-gradient(180deg, #fffdf8, #f0eadf);
+  background-size: 44px 44px, 44px 44px, cover;
+}
+
+.invite-theme-modern-minimal .invite-minimal-copy h1 {
+  max-width: 350px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.invite-theme-royal-emerald .invite-layout-royal {
+  background:
+    radial-gradient(circle at 50% 0, color-mix(in srgb, var(--invite-accent) 28%, transparent), transparent 28%),
+    linear-gradient(90deg, color-mix(in srgb, var(--invite-accent) 10%, transparent), transparent 22%, transparent 78%, color-mix(in srgb, var(--invite-accent) 10%, transparent)),
+    var(--invite-card);
+}
+
+.invite-theme-royal-emerald .invite-royal-crest {
+  box-shadow:
+    0 18px 38px rgba(16, 38, 31, 0.12),
+    0 0 0 10px color-mix(in srgb, var(--invite-accent) 12%, transparent);
+}
+
+.invite-theme-midnight-starry .invite-midnight-title {
+  text-shadow: 0 12px 46px rgba(240, 195, 111, 0.18);
+}
+
+.invite-theme-midnight-starry .invite-starry-strip {
+  backdrop-filter: blur(12px);
+}
+
+.invite-theme-garden-bloom .invite-flower-ring {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.94) 0 38%, transparent 39%),
+    conic-gradient(from 16deg, #e7aaae, #fff5d6, var(--invite-accent), #e7aaae);
+}
+
+.invite-theme-silk-lilac .invite-silk-cover {
+  background-color: color-mix(in srgb, var(--invite-accent) 28%, white);
+}
+
+.invite-theme-silk-lilac .invite-silk-title {
+  text-wrap: balance;
+}
+
 .invite-premium-font {
   font-family: "Bodoni 72", "Didot", "Cormorant Garamond", Georgia, serif;
 }
@@ -1836,4 +1913,125 @@
   font-size: 64px;
   line-height: 0.98;
   color: var(--invite-ink);
+}
+
+.invite-layout-velvet {
+  color: var(--invite-ink);
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255, 216, 144, 0.18), transparent 26%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 2px, transparent 2px 28px),
+    linear-gradient(145deg, rgba(111, 13, 32, 0.96), rgba(32, 6, 15, 0.98));
+}
+
+.invite-layout-velvet::before {
+  inset: 18px;
+  border-color: rgba(216, 170, 88, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 54px rgba(216, 170, 88, 0.12);
+}
+
+.invite-layout-velvet .bg-white\/55,
+.invite-layout-velvet .bg-white\/60 {
+  background: rgba(255, 248, 238, 0.1);
+  border-color: rgba(216, 170, 88, 0.28);
+  color: var(--invite-ink);
+}
+
+.invite-velvet-curtain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255, 224, 154, 0.32), transparent 30%),
+    linear-gradient(90deg, rgba(0,0,0,.3), transparent 18%, transparent 82%, rgba(0,0,0,.34));
+}
+
+.invite-velvet-curtain::before,
+.invite-velvet-curtain::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 42%;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 22px);
+  opacity: 0.55;
+}
+
+.invite-velvet-curtain::before {
+  left: 0;
+  transform: skewX(-8deg);
+}
+
+.invite-velvet-curtain::after {
+  right: 0;
+  transform: skewX(8deg);
+}
+
+.invite-velvet-monogram {
+  position: relative;
+  z-index: 2;
+  margin: 18px auto 0;
+  display: flex;
+  height: 92px;
+  width: 92px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(216, 170, 88, 0.62);
+  background: radial-gradient(circle, rgba(255, 246, 224, 0.18), rgba(216, 170, 88, 0.06));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), inset 0 0 0 8px rgba(255, 255, 255, 0.035);
+  color: var(--invite-accent);
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.invite-velvet-monogram span {
+  font-size: 18px;
+  font-style: italic;
+  opacity: 0.72;
+}
+
+.invite-velvet-label {
+  margin-top: 26px;
+  color: var(--invite-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.invite-velvet-title {
+  margin-top: 22px;
+  font-family: "Bodoni 72", Didot, Georgia, serif;
+  font-size: 54px;
+  line-height: 0.98;
+  color: var(--invite-ink);
+}
+
+.invite-velvet-title span {
+  display: block;
+  margin: 10px 0;
+  color: var(--invite-accent);
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: 42px;
+  font-weight: 400;
+}
+
+.invite-velvet-ticket {
+  margin-top: 34px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(216, 170, 88, 0.36);
+  border-radius: 14px;
+  background: rgba(216, 170, 88, 0.32);
+}
+
+.invite-velvet-ticket > div {
+  background: rgba(255, 248, 238, 0.1);
+  padding: 16px 12px;
 }

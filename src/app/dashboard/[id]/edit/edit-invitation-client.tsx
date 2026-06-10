@@ -5,35 +5,37 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Rocket, Save } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { InvitationDesignEditor } from "@/components/invitation-design-editor";
 import { InvitationDeleteButton } from "@/components/invitation-delete-button";
 import { InvitationPreview } from "@/components/invitation-preview";
-import { VenuePicker } from "@/components/venue-picker";
+import { TemplateFormFields } from "@/components/template-form-fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { weddingTemplateFields } from "@/lib/templates";
 import { appUrl } from "@/lib/utils";
-import { findVenueOption } from "@/lib/venues";
 import { weddingFormSchema, type WeddingFormInput } from "@/lib/validations";
 import type { Invitation } from "@/types";
 
 export function EditInvitationClient({ invitation }: { invitation: Invitation }) {
   const router = useRouter();
+  const [designDocument, setDesignDocument] = useState(
+    () => structuredClone(invitation.designDocument ?? invitation.template?.designDocument ?? null)
+  );
   const form = useForm<WeddingFormInput>({
     resolver: zodResolver(weddingFormSchema),
     defaultValues: invitation.formData
   });
   const previewData = form.watch();
-  const selectedVenue = findVenueOption(previewData.venueName, previewData.venueAddress);
+  const templateFields = invitation.template?.schema ?? weddingTemplateFields;
 
   const saveMutation = useMutation({
     mutationFn: async (values: WeddingFormInput) => {
       const response = await fetch(`/api/invitations/${invitation.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formData: values })
+        body: JSON.stringify({ formData: values, designDocument })
       });
       if (!response.ok) throw new Error("Saqlanmadi");
       return response.json();
@@ -47,7 +49,7 @@ export function EditInvitationClient({ invitation }: { invitation: Invitation })
       const saveResponse = await fetch(`/api/invitations/${invitation.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formData: values })
+        body: JSON.stringify({ formData: values, designDocument })
       });
       if (!saveResponse.ok) throw new Error("Saqlanmadi");
 
@@ -97,7 +99,7 @@ export function EditInvitationClient({ invitation }: { invitation: Invitation })
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_460px]">
         <Card>
           <CardHeader>
-            <CardTitle>Taklifnomani tahrirlash</CardTitle>
+            <CardTitle>Template editor</CardTitle>
             <CardDescription>
               {publicUrl ? `Public link: ${publicUrl}` : "Publish qilingandan keyin public link yaratiladi."}
             </CardDescription>
@@ -105,69 +107,29 @@ export function EditInvitationClient({ invitation }: { invitation: Invitation })
           <CardContent>
             <form
               id="edit-invitation-form"
-              className="grid gap-4 md:grid-cols-2"
+              className="space-y-4"
               onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}
             >
-              <Field label="Kuyov ismi" error={form.formState.errors.groomName?.message}>
-                <Input {...form.register("groomName")} />
-              </Field>
-              <Field label="Kelin ismi" error={form.formState.errors.brideName?.message}>
-                <Input {...form.register("brideName")} />
-              </Field>
-              <Field label="Sana" error={form.formState.errors.eventDate?.message}>
-                <Input type="date" {...form.register("eventDate")} />
-              </Field>
-              <Field label="Vaqt" error={form.formState.errors.eventTime?.message}>
-                <Input type="time" {...form.register("eventTime")} />
-              </Field>
-              <Field label="Rasm URL" error={form.formState.errors.coverImageUrl?.message}>
-                <Input {...form.register("coverImageUrl")} />
-              </Field>
-              <VenuePicker
-                selectedId={selectedVenue?.id}
-                onSelect={(venue) => {
-                  form.setValue("venueName", venue.name, { shouldDirty: true, shouldValidate: true });
-                  form.setValue("venueAddress", venue.address, { shouldDirty: true, shouldValidate: true });
-                }}
-              />
-              <div className="md:col-span-2 rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-                Tanlangan manzil: <span className="font-semibold text-foreground">{previewData.venueName}</span> ·{" "}
-                {previewData.venueAddress}
-              </div>
-              <Field label="Taklif matni" className="md:col-span-2" error={form.formState.errors.hostText?.message}>
-                <Textarea {...form.register("hostText")} />
-              </Field>
+              <TemplateFormFields form={form} fields={templateFields} />
               {saveMutation.isError || publishMutation.isError ? (
-                <p className="text-sm text-destructive md:col-span-2">Amal bajarilmadi.</p>
+                <p className="text-sm text-destructive">Amal bajarilmadi.</p>
               ) : null}
             </form>
           </CardContent>
         </Card>
 
-        <aside className="lg:sticky lg:top-6 lg:self-start">
-          <InvitationPreview data={previewData} variant={invitation.templateId} />
+        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+          {designDocument ? (
+            <InvitationDesignEditor
+              document={designDocument}
+              data={previewData}
+              onChange={setDesignDocument}
+            />
+          ) : (
+            <InvitationPreview data={previewData} variant={invitation.templateId} />
+          )}
         </aside>
       </div>
     </main>
-  );
-}
-
-function Field({
-  label,
-  error,
-  className,
-  children
-}: {
-  label: string;
-  error?: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={className}>
-      <Label>{label}</Label>
-      <div className="mt-2">{children}</div>
-      {error ? <p className="mt-1 text-sm text-destructive">{error}</p> : null}
-    </div>
   );
 }

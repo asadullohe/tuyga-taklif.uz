@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Taklifnoma logo">
+
+<defs>
+  <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#fff0b8"/>
+    <stop offset="28%" stop-color="#d8a344"/>
+    <stop offset="58%" stop-color="#a66a20"/>
+    <stop offset="82%" stop-color="#f2cc74"/>
+    <stop offset="100%" stop-color="#8d5517"/>
+  </linearGradient>
+  <linearGradient id="goldSoft" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#fff6d8"/>
+    <stop offset="50%" stop-color="#d7a44b"/>
+    <stop offset="100%" stop-color="#9f6a24"/>
+  </linearGradient>
+  <linearGradient id="paper" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#fffdf7"/>
+    <stop offset="100%" stop-color="#f4dfc4"/>
+  </linearGradient>
+  <radialGradient id="blush" cx="35%" cy="25%" r="70%">
+    <stop offset="0%" stop-color="#ffe2da"/>
+    <stop offset="55%" stop-color="#e5a291"/>
+    <stop offset="100%" stop-color="#b86b61"/>
+  </radialGradient>
+  <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#6b3a18" flood-opacity=".20"/>
+  </filter>
+  <filter id="smallShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#6b3a18" flood-opacity=".18"/>
+  </filter>
+  <style>
+    .word { font-family: "Cormorant Garamond", "Times New Roman", serif; font-weight: 700; letter-spacing: -2px; }
+    .script { font-family: "Allura", "Snell Roundhand", "Brush Script MT", cursive; font-weight: 400; }
+    .tag { font-family: Inter, Arial, sans-serif; letter-spacing: 3px; font-weight: 600; }
+  </style>
+</defs>
+
+
+  <g transform="translate(64 66)">
+    
+    <g filter="url(#softShadow)">
+      <circle cx="0" cy="0" r="41.4" fill="none" stroke="url(#gold)" stroke-width="3.15"/>
+      <path d="M -11.25 -43.2 C -4.5 -53.1, 4.5 -53.1, 11.25 -43.2
+               M -19.8 -42.300000000000004 C -14.4 -33.300000000000004, -6.3 -36.9, -3.15 -43.2
+               M 19.8 -42.300000000000004 C 14.4 -33.300000000000004, 6.3 -36.9, 3.15 -43.2"
+            fill="none" stroke="url(#gold)" stroke-width="2.25" stroke-linecap="round"/>
+      <path d="M 0 -45.45
+               C -6.3 -52.2, -15.75 -43.2, 0 -33.75
+               C 15.75 -43.2, 6.3 -52.2, 0 -45.45Z"
+            fill="#fff7e7" stroke="url(#gold)" stroke-width="1.35"/>
+
+      <rect x="-22.5" y="-21.6" width="45.0" height="31.5" rx="1.8" fill="url(#paper)" stroke="url(#goldSoft)" stroke-width="0.9"/>
+      <path d="M -17.1 -15.3 H 17.1 M -10.8 -9.0 H 10.8"
+            stroke="url(#goldSoft)" stroke-width="0.81" stroke-linecap="round" opacity=".75"/>
+      <path d="M 0 -19.35 C -2.7 -15.75, 2.7 -15.75, 0 -12.15"
+            fill="none" stroke="url(#goldSoft)" stroke-width="0.765" stroke-linecap="round"/>
+
+      <path d="M -31.5 -9.0 L 0 15.75 L 31.5 -9.0 V 27.900000000000002 H -31.5Z"
+            fill="url(#paper)" stroke="url(#gold)" stroke-width="1.35" stroke-linejoin="round"/>
+      <path d="M -31.5 -9.0 L 0 11.700000000000001 L 31.5 -9.0"
+            fill="none" stroke="url(#goldSoft)" stroke-width="1.35" stroke-linecap="round"/>
+
+      
+
+      <path d="M 0 4.5
+               C -8.1 -4.5, -20.25 7.2, 0 20.25
+               C 20.25 7.2, 8.1 -4.5, 0 4.5Z"
+            fill="url(#blush)" stroke="url(#gold)" stroke-width="1.8"/>
+      
+    </g>
+    
+  </g>
+
+</svg>

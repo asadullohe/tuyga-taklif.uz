@@ -1,11 +1,14 @@
 import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
 import { CalendarDays, Clock, Heart, MapPin, Sparkles } from "lucide-react";
-import type { WeddingFormData } from "@/types";
+import { TemplateDocumentPreview } from "@/components/template-canvas";
+import type { TemplateDocument, WeddingFormData } from "@/types";
 import { cn, formatDateTime, getUzDateParts } from "@/lib/utils";
 
 type InvitationPreviewProps = {
   data: WeddingFormData;
   variant?: string;
+  designDocument?: TemplateDocument | null;
   className?: string;
 };
 
@@ -245,6 +248,22 @@ const themes: Record<string, InviteTheme> = {
     particle: "rgba(209,250,254,.48)",
     motif: "glass-shimmer",
     layout: "ocean"
+  },
+  "velvet-ruby": {
+    id: "velvet-ruby",
+    label: "Velvet lights",
+    accent: "#d8aa58",
+    accentSoft: "#f6e3bd",
+    ink: "#fff8ee",
+    muted: "#f4d6bc",
+    card: "linear-gradient(160deg, rgba(87,10,23,.98), rgba(31,7,14,.97))",
+    stage:
+      "radial-gradient(circle at 50% 8%, rgba(255,210,128,.38), transparent 24%), linear-gradient(135deg, #2a0610 0%, #8f1730 50%, #1b0710 100%)",
+    border: "rgba(216,170,88,.42)",
+    shadow: "0 34px 100px rgba(54, 4, 17, .54)",
+    particle: "rgba(255,218,143,.46)",
+    motif: "velvet-sparks",
+    layout: "velvet"
   }
 };
 
@@ -257,7 +276,16 @@ const countdown = [
   ["00", "Soniya"]
 ];
 
-export function InvitationPreview({ data, variant = "classic-rose", className }: InvitationPreviewProps) {
+export function InvitationPreview({
+  data,
+  variant = "classic-rose",
+  designDocument,
+  className
+}: InvitationPreviewProps) {
+  if (designDocument) {
+    return <TemplateDocumentPreview document={designDocument} data={data} className={className} />;
+  }
+
   const theme = themes[variant] ?? fallbackTheme;
   const dateParts = data.eventDate ? getUzDateParts(data.eventDate) : null;
   const model: PreviewModel = {
@@ -448,7 +476,9 @@ function RoyalLayout({ model }: { model: PreviewModel }) {
   return (
     <Frame className="invite-layout-royal rounded-[1.4rem] px-7 py-9 text-center sm:px-10">
       <div className="invite-royal-gate" />
-      <div className="invite-royal-crest invite-reveal"><Sparkles className="h-5 w-5" /></div>
+      <div className="invite-royal-crest invite-reveal">
+        <Image src="/taklifnoma-emblem-transparent.svg" alt="" width={46} height={46} className="h-11 w-11" />
+      </div>
       <p className="invite-reveal invite-royal-eyebrow">Royal nikoh majlisi</p>
       <h1 className="invite-reveal invite-royal-title">
         {model.data.groomName || "Kuyov"}
@@ -631,6 +661,34 @@ function OceanLayout({ model }: { model: PreviewModel }) {
   );
 }
 
+function VelvetLayout({ model }: { model: PreviewModel }) {
+  return (
+    <Frame className="invite-layout-velvet rounded-[1.75rem] px-6 py-7 text-center">
+      <div className="invite-velvet-curtain" />
+      <div className="invite-velvet-monogram invite-reveal">
+        {(model.data.groomName || "K").slice(0, 1)}
+        <span>&</span>
+        {(model.data.brideName || "K").slice(0, 1)}
+      </div>
+      <p className="invite-reveal invite-velvet-label">Velvet ceremony</p>
+      <h1 className="invite-reveal invite-velvet-title">
+        {model.data.groomName || "Kuyov"}
+        <span>&</span>
+        {model.data.brideName || "Kelin"}
+      </h1>
+      <div className="invite-reveal invite-velvet-ticket">
+        <Meta label={model.weekday} value={`${model.day} · ${model.monthYear}`} />
+        <Meta label="Boshlanish" value={model.time} />
+      </div>
+      <p className="invite-reveal mx-auto mt-7 max-w-xs text-sm leading-7 text-[var(--invite-muted)]">{model.data.hostText}</p>
+      <div className="invite-reveal mt-7 grid gap-3 text-left">
+        <Pill icon={<MapPin className="h-4 w-4" />} text={`${model.data.venueName || "To'yxona"} · ${model.data.venueAddress || "Manzil"}`} href={getMapHref(model)} />
+      </div>
+      <LocationButton model={model} />
+    </Frame>
+  );
+}
+
 const layouts = {
   rose: RoseLayout,
   blueInk: BlueInkLayout,
@@ -644,7 +702,8 @@ const layouts = {
   garden: GardenLayout,
   silk: SilkLayout,
   desert: DesertLayout,
-  ocean: OceanLayout
+  ocean: OceanLayout,
+  velvet: VelvetLayout
 };
 
 function Frame({ children, className }: { children: ReactNode; className?: string }) {
@@ -664,7 +723,7 @@ function Seal({ icon }: { icon: "heart" | "sparkles" }) {
   return (
     <div className="invite-seal absolute left-1/2 top-[-14px] flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow-lg">
       {icon === "heart" ? (
-        <Heart className="h-6 w-6 fill-[var(--invite-accent)] text-[var(--invite-accent)]" />
+        <Image src="/taklifnoma-monogram-transparent.svg" alt="" width={34} height={34} className="h-8 w-8" />
       ) : (
         <Sparkles className="h-6 w-6 text-[var(--invite-accent)]" />
       )}

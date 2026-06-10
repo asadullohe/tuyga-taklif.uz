@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="220" viewBox="0 0 900 220" role="img" aria-label="Taklifnoma logo">
+
+<defs>
+  <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#fff0b8"/>
+    <stop offset="28%" stop-color="#d8a344"/>
+    <stop offset="58%" stop-color="#a66a20"/>
+    <stop offset="82%" stop-color="#f2cc74"/>
+    <stop offset="100%" stop-color="#8d5517"/>
+  </linearGradient>
+  <linearGradient id="goldSoft" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#fff6d8"/>
+    <stop offset="50%" stop-color="#d7a44b"/>
+    <stop offset="100%" stop-color="#9f6a24"/>
+  </linearGradient>
+  <linearGradient id="paper" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#fffdf7"/>
+    <stop offset="100%" stop-color="#f4dfc4"/>
+  </linearGradient>
+  <radialGradient id="blush" cx="35%" cy="25%" r="70%">
+    <stop offset="0%" stop-color="#ffe2da"/>
+    <stop offset="55%" stop-color="#e5a291"/>
+    <stop offset="100%" stop-color="#b86b61"/>
+  </radialGradient>
+  <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#6b3a18" flood-opacity=".20"/>
+  </filter>
+  <filter id="smallShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#6b3a18" flood-opacity=".18"/>
+  </filter>
+  <style>
+    .word { font-family: "Cormorant Garamond", "Times New Roman", serif; font-weight: 700; letter-spacing: -2px; }
+    .script { font-family: "Allura", "Snell Roundhand", "Brush Script MT", cursive; font-weight: 400; }
+    .tag { font-family: Inter, Arial, sans-serif; letter-spacing: 3px; font-weight: 600; }
+  </style>
+</defs>
+
+
+  <g transform="translate(126 118)">
+    
+    <g filter="url(#softShadow)">
+      <circle cx="0" cy="0" r="62.56" fill="none" stroke="url(#gold)" stroke-width="4.760000000000001"/>
+      <path d="M -17.0 -65.28 C -6.800000000000001 -80.24000000000001, 6.800000000000001 -80.24000000000001, 17.0 -65.28
+               M -29.92 -63.92 C -21.76 -50.32, -9.520000000000001 -55.760000000000005, -4.760000000000001 -65.28
+               M 29.92 -63.92 C 21.76 -50.32, 9.520000000000001 -55.760000000000005, 4.760000000000001 -65.28"
+            fill="none" stroke="url(#gold)" stroke-width="3.4000000000000004" stroke-linecap="round"/>
+      <path d="M 0 -68.68
+               C -9.520000000000001 -78.88000000000001, -23.8 -65.28, 0 -51.00000000000001
+               C 23.8 -65.28, 9.520000000000001 -78.88000000000001, 0 -68.68Z"
+            fill="#fff7e7" stroke="url(#gold)" stroke-width="2.04"/>
+
+      <rect x="-34.0" y="-32.64" width="68.0" height="47.6" rx="2.72" fill="url(#paper)" stroke="url(#goldSoft)" stroke-width="1.36"/>
+      <path d="M -25.840000000000003 -23.12 H 25.840000000000003 M -16.32 -13.600000000000001 H 16.32"
+            stroke="url(#goldSoft)" stroke-width="1.2240000000000002" stroke-linecap="round" opacity=".75"/>
+      <path d="M 0 -29.240000000000002 C -4.08 -23.8, 4.08 -23.8, 0 -18.360000000000003"
+            fill="none" stroke="url(#goldSoft)" stroke-width="1.1560000000000001" stroke-linecap="round"/>
+
+      <path d="M -47.6 -13.600000000000001 L 0 23.8 L 47.6 -13.600000000000001 V 42.160000000000004 H -47.6Z"
+            fill="url(#paper)" stroke="url(#gold)" stroke-width="2.04" stroke-linejoin="round"/>
+      <path d="M -47.6 -13.600000000000001 L 0 17.68 L 47.6 -13.600000000000001"
+            fill="none" stroke="url(#goldSoft)" stroke-width="2.04" stroke-linecap="round"/>
+
+      
+
+      <path d="M 0 6.800000000000001
+               C -12.24 -6.800000000000001, -30.6 10.88, 0 30.6
+               C 30.6 10.88, 12.24 -6.800000000000001, 0 6.800000000000001Z"
+            fill="url(#blush)" stroke="url(#gold)" stroke-width="2.72"/>
+      
+      <g transform="translate(-42.160000000000004 34.0) scale(0.68)" filter="url(#smallShadow)">
+        <circle cx="0" cy="0" r="16" fill="url(#blush)" stroke="url(#gold)" stroke-width="1"/>
+        <path d="M-10 0 C-8 -12 8 -12 10 0 C8 12 -8 12 -10 0Z" fill="#ffd6cd" opacity=".82"/>
+        <path d="M0 -11 C13 -7 13 7 0 11 C-13 7 -13 -7 0 -11Z" fill="#efb1a5" opacity=".78"/>
+        <path d="M-30 4 C-14 -6 -10 14 -26 18Z" fill="url(#goldSoft)"/>
+        <path d="M28 4 C12 -6 10 14 26 18Z" fill="url(#goldSoft)"/>
+      </g>
+      <g transform="translate(42.160000000000004 34.0) scale(0.68)" filter="url(#smallShadow)">
+        <circle cx="0" cy="0" r="16" fill="url(#blush)" stroke="url(#gold)" stroke-width="1"/>
+        <path d="M-10 0 C-8 -12 8 -12 10 0 C8 12 -8 12 -10 0Z" fill="#ffd6cd" opacity=".82"/>
+        <path d="M0 -11 C13 -7 13 7 0 11 C-13 7 -13 -7 0 -11Z" fill="#efb1a5" opacity=".78"/>
+        <path d="M-28 4 C-12 -6 -10 14 -26 18Z" fill="url(#goldSoft)"/>
+        <path d="M30 4 C14 -6 10 14 26 18Z" fill="url(#goldSoft)"/>
+      </g>
+    
+    </g>
+    
+  </g>
+  <text x="250" y="130" class="word" font-size="88" fill="url(#gold)" stroke="#fff1bd" stroke-width=".35" filter="url(#smallShadow)">Taklifnoma</text>
+  <path d="M 304 158 H 772" stroke="url(#gold)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 520 158 C 548 134, 576 182, 604 158" fill="none" stroke="url(#gold)" stroke-width="3" stroke-linecap="round"/>
+  <text x="537" y="190" text-anchor="middle" class="tag" font-size="12" fill="#d9b66d">ROMANTIC • PREMIUM • CREATIVE</text>
+
+</svg>
