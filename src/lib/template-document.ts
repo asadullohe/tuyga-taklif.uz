@@ -311,7 +311,13 @@ export function normalizeTemplateDocument(document: TemplateDocument): TemplateD
           easing: layer.motion?.easing ?? "ease-out",
           enter: layer.motion?.enter ?? "none",
           exit: layer.motion?.exit ?? "none",
-          textEffect: layer.motion?.textEffect ?? "none"
+          textEffect: layer.motion?.textEffect ?? "none",
+          keyframes: [...(layer.motion?.keyframes ?? [])]
+            .map((keyframe) => ({
+              ...keyframe,
+              timeMs: Math.max(0, Math.min(timeline.durationMs, keyframe.timeMs))
+            }))
+            .sort((a, b) => a.timeMs - b.timeMs)
         }
       };
     })
@@ -322,6 +328,97 @@ export function resolveLayerText(layer: TemplateLayer, data?: Partial<WeddingFor
   if (layer.type !== "text" || !layer.binding || !data) return layer.type === "text" ? layer.text : "";
   const value = data[layer.binding];
   return typeof value === "string" && value.length > 0 ? value : layer.text;
+}
+
+export function getLayerKeyframeState(layer: TemplateLayer, playbackMs: number) {
+  const base = {
+    x: layer.x,
+    y: layer.y,
+    scale: 1,
+    rotation: layer.rotation,
+    opacity: layer.opacity
+  };
+  const keyframes = layer.motion?.keyframes ?? [];
+  if (!keyframes.length) return base;
+
+  const sorted = [...keyframes].sort((a, b) => a.timeMs - b.timeMs);
+  const first = sorted[0];
+  const startMs = Math.min(layer.motion?.startMs ?? 0, first.timeMs);
+  if (playbackMs < startMs) return base;
+  if (playbackMs < first.timeMs) {
+    return interpolateKeyframeState(
+      base,
+      first,
+      easeKeyframeProgress(
+        (playbackMs - startMs) / Math.max(1, first.timeMs - startMs),
+        layer.motion?.easing
+      )
+    );
+  }
+  if (playbackMs === first.timeMs) {
+    return {
+      x: first.x,
+      y: first.y,
+      scale: first.scale,
+      rotation: first.rotation,
+      opacity: first.opacity
+    };
+  }
+
+  for (let index = 0; index < sorted.length - 1; index += 1) {
+    const current = sorted[index];
+    const next = sorted[index + 1];
+    if (playbackMs <= next.timeMs) {
+      return interpolateKeyframeState(
+        current,
+        next,
+        easeKeyframeProgress(
+          (playbackMs - current.timeMs) / Math.max(1, next.timeMs - current.timeMs),
+          layer.motion?.easing
+        )
+      );
+    }
+  }
+
+  const last = sorted[sorted.length - 1];
+  return {
+    x: last.x,
+    y: last.y,
+    scale: last.scale,
+    rotation: last.rotation,
+    opacity: last.opacity
+  };
+}
+
+function easeKeyframeProgress(
+  raw: number,
+  easing: NonNullable<TemplateLayer["motion"]>["easing"] | undefined
+) {
+  const progress = Math.max(0, Math.min(1, raw));
+  if (easing === "ease-in") return progress * progress;
+  if (easing === "ease-in-out") {
+    return progress < 0.5
+      ? 2 * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+  }
+  if (easing === "linear") return progress;
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function interpolateKeyframeState(
+  from: { x: number; y: number; scale: number; rotation: number; opacity: number },
+  to: { x: number; y: number; scale: number; rotation: number; opacity: number },
+  rawProgress: number
+) {
+  const progress = Math.max(0, Math.min(1, rawProgress));
+  const lerp = (start: number, end: number) => start + (end - start) * progress;
+  return {
+    x: lerp(from.x, to.x),
+    y: lerp(from.y, to.y),
+    scale: lerp(from.scale, to.scale),
+    rotation: lerp(from.rotation, to.rotation),
+    opacity: lerp(from.opacity, to.opacity)
+  };
 }
 
 export function sanitizeUserDesignDocument(

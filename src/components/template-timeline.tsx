@@ -1,9 +1,10 @@
 "use client";
 
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { Pause, Play, TimerReset } from "lucide-react";
+import { ChevronDown, ChevronUp, Diamond, Pause, Play, Plus, TimerReset, Trash2 } from "lucide-react";
 import type { TemplateDocument, TemplateLayer } from "@/types";
 import { cn } from "@/lib/utils";
+import { getLayerKeyframeState } from "@/lib/template-document";
 
 type TemplateTimelineProps = {
   document: TemplateDocument;
@@ -17,6 +18,8 @@ type TemplateTimelineProps = {
   onSelectLayer?: (id: string) => void;
   onTimelineLayerChange?: (id: string, patch: Partial<TemplateLayer>, transient?: boolean) => void;
   onTimelineInteractionEnd?: () => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 };
 
 type DragMode = "move" | "start" | "end";
@@ -35,21 +38,72 @@ export function TemplateTimeline({
   onLayerChange,
   onSelectLayer,
   onTimelineLayerChange,
-  onTimelineInteractionEnd
+  onTimelineInteractionEnd,
+  collapsed = false,
+  onToggleCollapsed
 }: TemplateTimelineProps) {
   const duration = document.timeline?.durationMs ?? 6000;
-  const defaultMotion = {
+  const defaultMotion: NonNullable<TemplateLayer["motion"]> = {
     startMs: 0,
     durationMs: 700,
     endMs: duration,
     exitDurationMs: 500,
-    easing: "ease-out" as const,
-    enter: "none" as const,
-    exit: "none" as const,
-    textEffect: "none" as const
+    easing: "ease-out",
+    enter: "none",
+    exit: "none",
+    textEffect: "none",
+    keyframes: []
   };
   const motion = selectedLayer?.motion ?? defaultMotion;
   const ticks = Array.from({ length: 7 }, (_, index) => duration * (index / 6));
+  const snappedPlaybackMs = clamp(snapTime(playbackMs), 0, duration);
+  const activeKeyframe = selectedLayer
+    ? motion.keyframes.find((keyframe) => Math.abs(keyframe.timeMs - snappedPlaybackMs) < timelineSnapMs)
+    : undefined;
+
+  const addKeyframe = () => {
+    if (!selectedLayer || activeKeyframe) return;
+    const timeMs = clamp(snappedPlaybackMs, motion.startMs, motion.endMs);
+    const state = getLayerKeyframeState(selectedLayer, timeMs);
+    onLayerChange({
+      motion: {
+        ...motion,
+        keyframes: [
+          ...motion.keyframes,
+          {
+            id: crypto.randomUUID(),
+            timeMs,
+            ...state
+          }
+        ].sort((a, b) => a.timeMs - b.timeMs)
+      }
+    });
+    if (timeMs !== snappedPlaybackMs) onPlaybackChange(timeMs);
+  };
+
+  const updateActiveKeyframe = (
+    patch: Partial<NonNullable<TemplateLayer["motion"]>["keyframes"][number]>
+  ) => {
+    if (!activeKeyframe) return;
+    onLayerChange({
+      motion: {
+        ...motion,
+        keyframes: motion.keyframes
+          .map((keyframe) => (keyframe.id === activeKeyframe.id ? { ...keyframe, ...patch } : keyframe))
+          .sort((a, b) => a.timeMs - b.timeMs)
+      }
+    });
+  };
+
+  const deleteActiveKeyframe = () => {
+    if (!activeKeyframe) return;
+    onLayerChange({
+      motion: {
+        ...motion,
+        keyframes: motion.keyframes.filter((keyframe) => keyframe.id !== activeKeyframe.id)
+      }
+    });
+  };
 
   const seekFromPointer = (event: ReactPointerEvent<HTMLElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -57,11 +111,7 @@ export function TemplateTimeline({
     onPlaybackChange(clamp(snapTime(value), 0, duration));
   };
 
-  const startTimelineDrag = (
-    event: ReactPointerEvent<HTMLElement>,
-    layer: TemplateLayer,
-    mode: DragMode
-  ) => {
+  const startTimelineDrag = (event: ReactPointerEvent<HTMLElement>, layer: TemplateLayer, mode: DragMode) => {
     if (event.button !== 0 || !onTimelineLayerChange) return;
     event.preventDefault();
     event.stopPropagation();
@@ -92,6 +142,8 @@ export function TemplateTimeline({
       }
 
       const span = Math.max(0, endMs - startMs);
+      const keyframeDelta = mode === "move" ? startMs - initial.startMs : 0;
+
       onTimelineLayerChange(
         layer.id,
         {
@@ -100,7 +152,15 @@ export function TemplateTimeline({
             startMs,
             endMs,
             durationMs: Math.min(initial.durationMs, span),
-            exitDurationMs: Math.min(initial.exitDurationMs, span)
+            exitDurationMs: Math.min(initial.exitDurationMs, span),
+            keyframes: initial.keyframes.map((keyframe) => ({
+              ...keyframe,
+              timeMs: clamp(
+                keyframe.timeMs + keyframeDelta,
+                mode === "start" ? startMs : 0,
+                mode === "end" ? endMs : duration
+              )
+            }))
           }
         },
         true
@@ -121,297 +181,415 @@ export function TemplateTimeline({
 
   return (
     <div className="border-t border-white/10 bg-[#111613]/95 px-4 py-3 shadow-[0_-20px_60px_rgba(0,0,0,.22)] backdrop-blur">
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={() => onPlayingChange(!playing)} className="grid h-8 w-8 place-items-center rounded-full bg-[#d5b975] text-[#172019]">
-          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-        </button>
-        <span className="w-14 text-xs tabular-nums text-white/55">{(playbackMs / 1000).toFixed(1)}s</span>
-        <input
-          type="range"
-          min={0}
-          max={duration}
-          step={20}
-          value={playbackMs}
-          onChange={(event) => onPlaybackChange(Number(event.target.value))}
-          className="min-w-0 flex-1 accent-[#d5b975]"
-        />
-        <label className="flex items-center gap-2 text-[10px] text-white/40">
-          <TimerReset className="h-3.5 w-3.5" />
-          Duration
+      {collapsed ? (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onPlayingChange(!playing)}
+            className="grid h-8 w-8 place-items-center rounded-full bg-[#d5b975] text-[#172019]"
+          >
+            {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          </button>
+          <span className="w-14 text-xs tabular-nums text-white/55">{(playbackMs / 1000).toFixed(1)}s</span>
           <input
-            type="number"
-            min={1000}
-            step={500}
-            value={duration}
-            onChange={(event) => {
-              const nextDuration = Math.max(1000, Number(event.target.value) || 1000);
-              onDocumentChange({
-                ...document,
-                timeline: { durationMs: nextDuration },
-                layers: document.layers.map((layer) => {
-                  if (!layer.motion) return layer;
-                  const startMs = Math.min(layer.motion.startMs, Math.max(0, nextDuration - minimumVisibleMs));
-                  const endMs = clamp(layer.motion.endMs, startMs + minimumVisibleMs, nextDuration);
-                  const span = endMs - startMs;
-                  return {
-                    ...layer,
-                    motion: {
-                      ...layer.motion,
-                      startMs,
-                      endMs,
-                      durationMs: Math.min(layer.motion.durationMs, span),
-                      exitDurationMs: Math.min(layer.motion.exitDurationMs, span)
-                    }
-                  };
-                })
-              });
-              if (playbackMs > nextDuration) onPlaybackChange(nextDuration);
-            }}
-            className="h-7 w-20 rounded border border-white/10 bg-white/5 px-2 text-xs text-white outline-none"
+            type="range"
+            min={0}
+            max={duration}
+            step={20}
+            value={playbackMs}
+            onChange={(event) => onPlaybackChange(Number(event.target.value))}
+            className="min-w-0 flex-1 accent-[#d5b975]"
           />
-        </label>
-      </div>
-
-      <div className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-[#171d19]">
-        <div className="min-w-[760px]">
-          <div className="grid grid-cols-[180px_minmax(560px,1fr)] border-b border-white/10">
-            <div className="flex h-8 items-center px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
-              Layers
-            </div>
-            <div
-              className="relative h-8 cursor-crosshair border-l border-white/10"
-              onPointerDown={seekFromPointer}
+          <button
+            type="button"
+            onClick={() => onToggleCollapsed?.()}
+            className="ml-auto inline-flex h-8 items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-semibold text-white/55"
+          >
+            Timeline <ChevronUp className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onPlayingChange(!playing)}
+              className="grid h-8 w-8 place-items-center rounded-full bg-[#d5b975] text-[#172019]"
             >
-              {ticks.map((tick) => (
-                <div
-                  key={tick}
-                  className="absolute inset-y-0 border-l border-white/10"
-                  style={{ left: `${(tick / duration) * 100}%` }}
-                >
-                  <span className="absolute left-1 top-1.5 text-[9px] tabular-nums text-white/30">
-                    {(tick / 1000).toFixed(1)}s
-                  </span>
-                </div>
-              ))}
-              <Playhead playbackMs={playbackMs} duration={duration} />
-            </div>
+              {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+            </button>
+            <span className="w-14 text-xs tabular-nums text-white/55">{(playbackMs / 1000).toFixed(1)}s</span>
+            <input
+              type="range"
+              min={0}
+              max={duration}
+              step={20}
+              value={playbackMs}
+              onChange={(event) => onPlaybackChange(Number(event.target.value))}
+              className="min-w-0 flex-1 accent-[#d5b975]"
+            />
+            <label className="flex items-center gap-2 text-[10px] text-white/40">
+              <TimerReset className="h-3.5 w-3.5" />
+              Duration
+              <input
+                type="number"
+                min={1000}
+                step={500}
+                value={duration}
+                onChange={(event) => {
+                  const nextDuration = Math.max(1000, Number(event.target.value) || 1000);
+                  onDocumentChange({
+                    ...document,
+                    timeline: { durationMs: nextDuration },
+                    layers: document.layers.map((layer) => {
+                      if (!layer.motion) return layer;
+                      const startMs = Math.min(layer.motion.startMs, Math.max(0, nextDuration - minimumVisibleMs));
+                      const endMs = clamp(layer.motion.endMs, startMs + minimumVisibleMs, nextDuration);
+                      const span = endMs - startMs;
+                      return {
+                        ...layer,
+                        motion: {
+                          ...layer.motion,
+                          startMs,
+                          endMs,
+                          durationMs: Math.min(layer.motion.durationMs, span),
+                          exitDurationMs: Math.min(layer.motion.exitDurationMs, span),
+                          keyframes: layer.motion.keyframes.map((keyframe) => ({
+                            ...keyframe,
+                            timeMs: clamp(keyframe.timeMs, startMs, endMs)
+                          }))
+                        }
+                      };
+                    })
+                  });
+                  if (playbackMs > nextDuration) onPlaybackChange(nextDuration);
+                }}
+                className="h-7 w-20 rounded border border-white/10 bg-white/5 px-2 text-xs text-white outline-none"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => onToggleCollapsed?.()}
+              className="ml-auto inline-flex h-8 items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-semibold text-white/55"
+            >
+              Yig'ish <ChevronDown className="h-3 w-3" />
+            </button>
           </div>
 
-          <div className="max-h-36 overflow-y-auto">
-            {document.layers.map((layer) => {
-              const layerMotion = layer.motion ?? defaultMotion;
-              const selected = selectedLayer?.id === layer.id;
-              const startPercent = (layerMotion.startMs / duration) * 100;
-              const widthPercent = ((layerMotion.endMs - layerMotion.startMs) / duration) * 100;
-              const span = Math.max(1, layerMotion.endMs - layerMotion.startMs);
-              const enterPercent = Math.min(100, (layerMotion.durationMs / span) * 100);
-              const exitPercent = Math.min(100, (layerMotion.exitDurationMs / span) * 100);
-
-              return (
-                <div
-                  key={layer.id}
-                  className={cn(
-                    "grid grid-cols-[180px_minmax(560px,1fr)] border-b border-white/5 last:border-b-0",
-                    selected && "bg-[#d5b975]/5"
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onSelectLayer?.(layer.id)}
-                    className={cn(
-                      "flex h-8 min-w-0 items-center gap-2 px-3 text-left text-[11px] transition",
-                      selected ? "text-[#efd99e]" : "text-white/50 hover:text-white/75"
-                    )}
-                  >
-                    <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", layer.visible ? "bg-emerald-400" : "bg-white/20")} />
-                    <span className="truncate">{layer.name}</span>
-                    <span className="ml-auto text-[9px] uppercase text-white/20">{layer.type}</span>
-                  </button>
-                  <div
-                    data-timeline-track
-                    className="relative h-8 cursor-crosshair overflow-hidden border-l border-white/10"
-                    onPointerDown={seekFromPointer}
-                  >
-                    {ticks.map((tick) => (
-                      <span
-                        key={tick}
-                        className="pointer-events-none absolute inset-y-0 border-l border-white/[0.06]"
-                        style={{ left: `${(tick / duration) * 100}%` }}
-                      />
-                    ))}
+          <div className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-[#171d19]">
+            <div className="min-w-[760px]">
+              <div className="grid grid-cols-[180px_minmax(560px,1fr)] border-b border-white/10">
+                <div className="flex h-8 items-center px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+                  Layers
+                </div>
+                <div className="relative h-8 cursor-crosshair border-l border-white/10" onPointerDown={seekFromPointer}>
+                  {ticks.map((tick) => (
                     <div
+                      key={tick}
+                      className="absolute inset-y-0 border-l border-white/10"
+                      style={{ left: `${(tick / duration) * 100}%` }}
+                    >
+                      <span className="absolute left-1 top-1.5 text-[9px] tabular-nums text-white/30">
+                        {(tick / 1000).toFixed(1)}s
+                      </span>
+                    </div>
+                  ))}
+                  <Playhead playbackMs={playbackMs} duration={duration} />
+                </div>
+              </div>
+
+              <div className="max-h-36 overflow-y-auto">
+                {document.layers.map((layer) => {
+                  const layerMotion = layer.motion ?? defaultMotion;
+                  const selected = selectedLayer?.id === layer.id;
+                  const startPercent = (layerMotion.startMs / duration) * 100;
+                  const widthPercent = ((layerMotion.endMs - layerMotion.startMs) / duration) * 100;
+                  const span = Math.max(1, layerMotion.endMs - layerMotion.startMs);
+                  const enterPercent = Math.min(100, (layerMotion.durationMs / span) * 100);
+                  const exitPercent = Math.min(100, (layerMotion.exitDurationMs / span) * 100);
+
+                  return (
+                    <div
+                      key={layer.id}
                       className={cn(
-                        "absolute top-1 h-6 min-w-3 overflow-visible rounded border shadow-lg",
-                        selected
-                          ? "border-[#efd99e] bg-[#a58143]"
-                          : "border-white/15 bg-[#52645a]"
+                        "grid grid-cols-[180px_minmax(560px,1fr)] border-b border-white/5 last:border-b-0",
+                        selected && "bg-[#d5b975]/5"
                       )}
-                      style={{ left: `${startPercent}%`, width: `${widthPercent}%`, touchAction: "none" }}
                     >
                       <button
                         type="button"
-                        aria-label={`${layer.name} vaqtini ko'chirish`}
-                        className="absolute inset-0 cursor-grab overflow-hidden rounded active:cursor-grabbing"
-                        onPointerDown={(event) => startTimelineDrag(event, layer, "move")}
+                        onClick={() => onSelectLayer?.(layer.id)}
+                        className={cn(
+                          "flex h-8 min-w-0 items-center gap-2 px-3 text-left text-[11px] transition",
+                          selected ? "text-[#efd99e]" : "text-white/50 hover:text-white/75"
+                        )}
                       >
-                        {layerMotion.enter !== "none" || layerMotion.textEffect !== "none" ? (
-                          <span
-                            className="absolute inset-y-0 left-0 bg-white/20"
-                            style={{ width: `${enterPercent}%` }}
-                          />
-                        ) : null}
-                        {layerMotion.exit !== "none" ? (
-                          <span
-                            className="absolute inset-y-0 right-0 bg-black/25"
-                            style={{ width: `${exitPercent}%` }}
-                          />
-                        ) : null}
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 shrink-0 rounded-full",
+                            layer.visible ? "bg-emerald-400" : "bg-white/20"
+                          )}
+                        />
+                        <span className="truncate">{layer.name}</span>
+                        <span className="ml-auto text-[9px] uppercase text-white/20">{layer.type}</span>
                       </button>
-                      <button
-                        type="button"
-                        aria-label={`${layer.name} start vaqti`}
-                        className="absolute -left-1 top-0 z-10 h-full w-2 cursor-ew-resize rounded-l bg-[#f4dea4] shadow"
-                        onPointerDown={(event) => startTimelineDrag(event, layer, "start")}
-                      />
-                      <button
-                        type="button"
-                        aria-label={`${layer.name} end vaqti`}
-                        className="absolute -right-1 top-0 z-10 h-full w-2 cursor-ew-resize rounded-r bg-[#f4dea4] shadow"
-                        onPointerDown={(event) => startTimelineDrag(event, layer, "end")}
-                      />
+                      <div
+                        data-timeline-track="true"
+                        className="relative h-8 cursor-crosshair overflow-hidden border-l border-white/10"
+                        onPointerDown={seekFromPointer}
+                      >
+                        {ticks.map((tick) => (
+                          <span
+                            key={tick}
+                            className="pointer-events-none absolute inset-y-0 border-l border-white/[0.06]"
+                            style={{ left: `${(tick / duration) * 100}%` }}
+                          />
+                        ))}
+                        <div
+                          className={cn(
+                            "absolute top-1 h-6 min-w-3 overflow-visible rounded border shadow-lg",
+                            selected ? "border-[#efd99e] bg-[#a58143]" : "border-white/15 bg-[#52645a]"
+                          )}
+                          style={{ left: `${startPercent}%`, width: `${widthPercent}%`, touchAction: "none" }}
+                        >
+                          <button
+                            type="button"
+                            aria-label={`${layer.name} vaqtini ko'chirish`}
+                            className="absolute inset-0 cursor-grab overflow-hidden rounded active:cursor-grabbing"
+                            onPointerDown={(event) => startTimelineDrag(event, layer, "move")}
+                          >
+                            {layerMotion.enter !== "none" || layerMotion.textEffect !== "none" ? (
+                              <span className="absolute inset-y-0 left-0 bg-white/20" style={{ width: `${enterPercent}%` }} />
+                            ) : null}
+                            {layerMotion.exit !== "none" ? (
+                              <span className="absolute inset-y-0 right-0 bg-black/25" style={{ width: `${exitPercent}%` }} />
+                            ) : null}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`${layer.name} start vaqti`}
+                            className="absolute -left-1 top-0 z-10 h-full w-2 cursor-ew-resize rounded-l bg-[#f4dea4] shadow"
+                            onPointerDown={(event) => startTimelineDrag(event, layer, "start")}
+                          />
+                          <button
+                            type="button"
+                            aria-label={`${layer.name} end vaqti`}
+                            className="absolute -right-1 top-0 z-10 h-full w-2 cursor-ew-resize rounded-r bg-[#f4dea4] shadow"
+                            onPointerDown={(event) => startTimelineDrag(event, layer, "end")}
+                          />
+                        </div>
+                        {layerMotion.keyframes.map((keyframe) => (
+                          <button
+                            key={keyframe.id}
+                            type="button"
+                            title={`${(keyframe.timeMs / 1000).toFixed(2)}s keyframe`}
+                            aria-label={`${layer.name} keyframe ${(keyframe.timeMs / 1000).toFixed(2)} sekund`}
+                            className="absolute top-1/2 z-20 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-[#fff1bc] bg-[#e0b64f] shadow-[0_0_8px_rgba(224,182,79,.65)]"
+                            style={{ left: `${(keyframe.timeMs / duration) * 100}%` }}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onClick={() => {
+                              onSelectLayer?.(layer.id);
+                              onPlaybackChange(keyframe.timeMs);
+                            }}
+                          />
+                        ))}
+                        <Playhead playbackMs={playbackMs} duration={duration} />
+                      </div>
                     </div>
-                    <Playhead playbackMs={playbackMs} duration={duration} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {selectedLayer ? (
-        <div className="mt-2 space-y-2">
-          <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2">
-            <MotionSelect
-              label="Enter"
-              value={motion.enter}
-              onChange={(enter) => onLayerChange({ motion: { ...motion, enter } })}
-            />
-            <TimelineNumber
-              label="Start"
-              value={motion.startMs}
-              max={Math.max(0, motion.endMs - minimumVisibleMs)}
-              onChange={(startMs) => {
-                const nextStartMs = clamp(startMs, 0, Math.max(0, motion.endMs - minimumVisibleMs));
-                onLayerChange({
-                  motion: {
-                    ...motion,
-                    startMs: nextStartMs,
-                    durationMs: Math.min(motion.durationMs, Math.max(0, motion.endMs - nextStartMs))
-                  }
-                });
-              }}
-            />
-            <TimelineNumber
-              label="Enter length"
-              value={motion.durationMs}
-              max={Math.max(0, motion.endMs - motion.startMs)}
-              onChange={(durationMs) =>
-                onLayerChange({
-                  motion: {
-                    ...motion,
-                    durationMs: Math.min(durationMs, Math.max(0, motion.endMs - motion.startMs))
-                  }
-                })
-              }
-            />
-            <select
-              value={motion.easing}
-              onChange={(event) => onLayerChange({ motion: { ...motion, easing: event.target.value as typeof motion.easing } })}
-              className="h-8 rounded border border-white/10 bg-[#202722] px-2 text-xs text-white/70"
-            >
-              <option value="ease-out">Ease out</option>
-              <option value="ease-in">Ease in</option>
-              <option value="ease-in-out">Ease both</option>
-              <option value="linear">Linear</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2">
-            <MotionSelect
-              label="Exit"
-              value={motion.exit}
-              onChange={(exit) => onLayerChange({ motion: { ...motion, exit } })}
-            />
-            <TimelineNumber
-              label="End"
-              value={motion.endMs}
-              min={motion.startMs + Math.max(minimumVisibleMs, motion.durationMs)}
-              max={duration}
-              onChange={(endMs) =>
-                onLayerChange({
-                  motion: {
-                    ...motion,
-                    endMs: clamp(
-                      endMs,
-                      motion.startMs + Math.max(minimumVisibleMs, motion.durationMs),
-                      duration
-                    )
-                  }
-                })
-              }
-            />
-            <TimelineNumber
-              label="Exit length"
-              value={motion.exitDurationMs}
-              max={Math.max(0, motion.endMs - motion.startMs)}
-              onChange={(exitDurationMs) =>
-                onLayerChange({
-                  motion: {
-                    ...motion,
-                    exitDurationMs: Math.min(
-                      exitDurationMs,
-                      Math.max(0, motion.endMs - motion.startMs)
-                    )
-                  }
-                })
-              }
-            />
-            <div className="flex h-8 items-center rounded border border-white/10 bg-[#202722] px-2 text-[10px] text-white/35">
-              Visible: {(motion.startMs / 1000).toFixed(1)}s - {(motion.endMs / 1000).toFixed(1)}s
+                  );
+                })}
+              </div>
             </div>
           </div>
-          {selectedLayer.type === "text" ? (
-            <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2">
-              <label className="flex h-8 items-center gap-2 rounded border border-[#d5b975]/25 bg-[#d5b975]/5 px-2 text-[10px] text-[#d5b975]/70">
-                Text effect
-                <select
-                  value={motion.textEffect}
-                  onChange={(event) =>
+
+          {selectedLayer ? (
+            <div className="mt-2 space-y-2">
+              <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2">
+                <MotionSelect label="Enter" value={motion.enter} onChange={(enter) => onLayerChange({ motion: { ...motion, enter } })} />
+                <TimelineNumber
+                  label="Start"
+                  value={motion.startMs}
+                  max={Math.max(0, motion.endMs - minimumVisibleMs)}
+                  onChange={(startMs) => {
+                    const nextStartMs = clamp(startMs, 0, Math.max(0, motion.endMs - minimumVisibleMs));
                     onLayerChange({
                       motion: {
                         ...motion,
-                        textEffect: event.target.value as typeof motion.textEffect
+                        startMs: nextStartMs,
+                        durationMs: Math.min(motion.durationMs, Math.max(0, motion.endMs - nextStartMs)),
+                        keyframes: motion.keyframes.map((keyframe) => ({
+                          ...keyframe,
+                          timeMs: Math.max(nextStartMs, keyframe.timeMs)
+                        }))
+                      }
+                    });
+                  }}
+                />
+                <TimelineNumber
+                  label="Enter length"
+                  value={motion.durationMs}
+                  max={Math.max(0, motion.endMs - motion.startMs)}
+                  onChange={(durationMs) =>
+                    onLayerChange({
+                      motion: {
+                        ...motion,
+                        durationMs: Math.min(durationMs, Math.max(0, motion.endMs - motion.startMs))
                       }
                     })
                   }
-                  className="min-w-0 flex-1 bg-transparent text-xs text-[#f1dfad] outline-none"
+                />
+                <select
+                  value={motion.easing}
+                  onChange={(event) =>
+                    onLayerChange({ motion: { ...motion, easing: event.target.value as typeof motion.easing } })
+                  }
+                  className="h-8 rounded border border-white/10 bg-[#202722] px-2 text-xs text-white/70"
                 >
-                  <option value="none">None</option>
-                  <option value="typewriter">Typewriter</option>
-                  <option value="word-reveal">Word reveal</option>
-                  <option value="letter-reveal">Letter reveal</option>
-                  <option value="tracking">Tracking reveal</option>
-                  <option value="wipe">Mask wipe</option>
+                  <option value="ease-out">Ease out</option>
+                  <option value="ease-in">Ease in</option>
+                  <option value="ease-in-out">Ease both</option>
+                  <option value="linear">Linear</option>
                 </select>
-              </label>
-              <div className="col-span-3 flex h-8 items-center rounded border border-white/10 bg-[#202722] px-3 text-[10px] text-white/35">
-                Effect Start va Enter length oralig‘ida ishlaydi.
+              </div>
+
+              <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2">
+                <MotionSelect label="Exit" value={motion.exit} onChange={(exit) => onLayerChange({ motion: { ...motion, exit } })} />
+                <TimelineNumber
+                  label="End"
+                  value={motion.endMs}
+                  min={motion.startMs + Math.max(minimumVisibleMs, motion.durationMs)}
+                  max={duration}
+                  onChange={(endMs) => {
+                    const nextEndMs = clamp(endMs, motion.startMs + Math.max(minimumVisibleMs, motion.durationMs), duration);
+                    onLayerChange({
+                      motion: {
+                        ...motion,
+                        endMs: nextEndMs,
+                        keyframes: motion.keyframes.map((keyframe) => ({
+                          ...keyframe,
+                          timeMs: Math.min(nextEndMs, keyframe.timeMs)
+                        }))
+                      }
+                    });
+                  }}
+                />
+                <TimelineNumber
+                  label="Exit length"
+                  value={motion.exitDurationMs}
+                  max={Math.max(0, motion.endMs - motion.startMs)}
+                  onChange={(exitDurationMs) =>
+                    onLayerChange({
+                      motion: {
+                        ...motion,
+                        exitDurationMs: Math.min(exitDurationMs, Math.max(0, motion.endMs - motion.startMs))
+                      }
+                    })
+                  }
+                />
+                <div className="flex h-8 items-center rounded border border-white/10 bg-[#202722] px-2 text-[10px] text-white/35">
+                  Visible: {(motion.startMs / 1000).toFixed(1)}s - {(motion.endMs / 1000).toFixed(1)}s
+                </div>
+              </div>
+
+              {selectedLayer.type === "text" ? (
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2">
+                  <label className="flex h-8 items-center gap-2 rounded border border-[#d5b975]/25 bg-[#d5b975]/5 px-2 text-[10px] text-[#d5b975]/70">
+                    Text effect
+                    <select
+                      value={motion.textEffect}
+                      onChange={(event) =>
+                        onLayerChange({
+                          motion: {
+                            ...motion,
+                            textEffect: event.target.value as typeof motion.textEffect
+                          }
+                        })
+                      }
+                      className="min-w-0 flex-1 bg-transparent text-xs text-[#f1dfad] outline-none"
+                    >
+                      <option value="none">None</option>
+                      <option value="typewriter">Typewriter</option>
+                      <option value="word-reveal">Word reveal</option>
+                      <option value="letter-reveal">Letter reveal</option>
+                      <option value="tracking">Tracking reveal</option>
+                      <option value="wipe">Mask wipe</option>
+                    </select>
+                  </label>
+                  <div className="col-span-3 flex h-8 items-center rounded border border-white/10 bg-[#202722] px-3 text-[10px] text-white/35">
+                    Effect Start va Enter length oralig‘ida ishlaydi.
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="rounded-lg border border-[#d5b975]/20 bg-[#d5b975]/[0.04] p-2">
+                <div className="flex items-center gap-2">
+                  <Diamond className="h-3.5 w-3.5 fill-[#d5b975]/20 text-[#d5b975]" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#d5b975]/70">Keyframes</span>
+                  <span className="text-[10px] tabular-nums text-white/30">{(snappedPlaybackMs / 1000).toFixed(2)}s</span>
+                  {!activeKeyframe ? (
+                    <button
+                      type="button"
+                      onClick={addKeyframe}
+                      className="ml-auto flex h-7 items-center gap-1 rounded bg-[#d5b975] px-2 text-[10px] font-bold text-[#172019]"
+                    >
+                      <Plus className="h-3 w-3" /> Add keyframe
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={deleteActiveKeyframe}
+                      className="ml-auto grid h-7 w-7 place-items-center rounded border border-red-300/20 bg-red-400/10 text-red-200"
+                      aria-label="Keyframe o'chirish"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {activeKeyframe ? (
+                  <div className="mt-2 grid grid-cols-6 gap-2">
+                    <TimelineNumber
+                      label="Time"
+                      value={activeKeyframe.timeMs / 1000}
+                      min={motion.startMs / 1000}
+                      max={motion.endMs / 1000}
+                      step={0.05}
+                      onChange={(seconds) => {
+                        const timeMs = clamp(snapTime(seconds * 1000), motion.startMs, motion.endMs);
+                        updateActiveKeyframe({ timeMs });
+                        onPlaybackChange(timeMs);
+                      }}
+                    />
+                    <TimelineNumber label="X" value={activeKeyframe.x} step={1} onChange={(x) => updateActiveKeyframe({ x })} />
+                    <TimelineNumber label="Y" value={activeKeyframe.y} step={1} onChange={(y) => updateActiveKeyframe({ y })} />
+                    <TimelineNumber
+                      label="Scale"
+                      value={activeKeyframe.scale}
+                      min={0.05}
+                      step={0.05}
+                      onChange={(scale) => updateActiveKeyframe({ scale: Math.max(0.05, scale) })}
+                    />
+                    <TimelineNumber label="Rotate" value={activeKeyframe.rotation} step={1} onChange={(rotation) => updateActiveKeyframe({ rotation })} />
+                    <TimelineNumber
+                      label="Opacity"
+                      value={activeKeyframe.opacity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(opacity) => updateActiveKeyframe({ opacity: clamp(opacity, 0, 1) })}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[10px] text-white/30">
+                    Playheadni kerakli vaqtga olib boring va layer holatini keyframe sifatida qo‘shing.
+                  </p>
+                )}
               </div>
             </div>
-          ) : null}
-        </div>
-      ) : (
-        <p className="mt-2 text-[10px] text-white/30">Animatsiya berish uchun bitta layer tanlang.</p>
+          ) : (
+            <p className="mt-2 text-[10px] text-white/30">Animatsiya berish uchun bitta layer tanlang.</p>
+          )}
+        </>
       )}
     </div>
   );
@@ -467,18 +645,28 @@ function TimelineNumber({
   value,
   min = 0,
   max,
+  step = 100,
   onChange
 }: {
   label: string;
   value: number;
   min?: number;
   max?: number;
+  step?: number;
   onChange: (value: number) => void;
 }) {
   return (
     <label className="flex h-8 items-center gap-2 rounded border border-white/10 bg-[#202722] px-2 text-[10px] text-white/35">
       {label}
-      <input type="number" min={min} max={max} step={100} value={value} onChange={(event) => onChange(Number(event.target.value))} className="min-w-0 flex-1 bg-transparent text-right text-xs text-white/70 outline-none" />
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="min-w-0 flex-1 bg-transparent text-right text-xs text-white/70 outline-none"
+      />
     </label>
   );
 }

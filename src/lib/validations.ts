@@ -34,7 +34,20 @@ const layerBaseSchema = z.object({
       exit: z.enum(["none", "fade", "rise", "slide-left", "slide-right", "zoom"]).default("none"),
       textEffect: z
         .enum(["none", "typewriter", "word-reveal", "letter-reveal", "tracking", "wipe"])
-        .default("none")
+        .default("none"),
+      keyframes: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            timeMs: z.number().min(0),
+            x: z.number(),
+            y: z.number(),
+            scale: z.number().positive(),
+            rotation: z.number(),
+            opacity: z.number().min(0).max(1)
+          })
+        )
+        .default([])
     })
     .optional(),
   shadow: z

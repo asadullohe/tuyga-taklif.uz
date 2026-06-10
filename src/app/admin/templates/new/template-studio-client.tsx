@@ -102,6 +102,7 @@ export function TemplateStudioClient({ initialTemplate }: TemplateStudioClientPr
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [playbackMs, setPlaybackMs] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const [name, setName] = useState(initialTemplate?.name ?? "Yangi premium shablon");
   const [description, setDescription] = useState(
     initialTemplate?.description ?? "Layer-based, to'liq tahrirlanadigan to'y taklifnomasi."
@@ -470,7 +471,7 @@ export function TemplateStudioClient({ initialTemplate }: TemplateStudioClientPr
           </div>
         </aside>
 
-        <main className="relative min-h-0 overflow-auto bg-[#242b27]">
+        <main className="relative z-20 min-h-0 overflow-auto bg-[#242b27]">
           <div
             className="pointer-events-none absolute inset-0 opacity-30"
             style={{
@@ -478,6 +479,23 @@ export function TemplateStudioClient({ initialTemplate }: TemplateStudioClientPr
               backgroundSize: "24px 24px"
             }}
           />
+          <div className="sticky top-6 z-30 ml-auto mr-6 mb-4 flex w-fit items-center gap-2 rounded-full border border-white/10 bg-[#111613]/90 px-2 py-1.5 shadow-2xl backdrop-blur">
+            <StudioIcon label="Zoom out" onClick={() => setZoom((value) => Math.max(0.18, value - 0.04))}><Minus /></StudioIcon>
+            <span className="w-12 text-center text-xs font-semibold text-white/70">{Math.round(zoom * 100)}%</span>
+            <StudioIcon label="Zoom in" onClick={() => setZoom((value) => Math.min(0.72, value + 0.04))}><Plus /></StudioIcon>
+            <div className="group relative">
+              <button
+                type="button"
+                onClick={() => setSnapToGrid((value) => !value)}
+                className={cn("rounded-full px-3 py-1.5 text-xs font-semibold", snapToGrid ? "bg-[#d5b975] text-[#18201b]" : "text-white/50")}
+              >
+                Snap
+              </button>
+              <div className="pointer-events-none absolute right-0 top-full z-50 mt-2 w-64 rounded-lg border border-white/10 bg-[#111613] px-3 py-2 text-left text-[11px] leading-5 text-white/70 opacity-0 shadow-2xl transition group-hover:opacity-100">
+                Grid va yaqin edge’lar bo‘yicha layer joyini yopishtiradi. O‘chiq bo‘lsa, layer erkin suriladi.
+              </div>
+            </div>
+          </div>
           <div className="relative flex min-h-full min-w-max items-center justify-center p-16">
             <TemplateCanvas
               document={editor.document}
@@ -498,24 +516,13 @@ export function TemplateStudioClient({ initialTemplate }: TemplateStudioClientPr
               }}
             />
           </div>
-          <div className="sticky bottom-[330px] z-20 mx-auto flex w-fit items-center gap-2 rounded-full border border-white/10 bg-[#111613]/90 px-2 py-1.5 shadow-2xl backdrop-blur">
-            <StudioIcon label="Zoom out" onClick={() => setZoom((value) => Math.max(0.18, value - 0.04))}><Minus /></StudioIcon>
-            <span className="w-12 text-center text-xs font-semibold text-white/70">{Math.round(zoom * 100)}%</span>
-            <StudioIcon label="Zoom in" onClick={() => setZoom((value) => Math.min(0.72, value + 0.04))}><Plus /></StudioIcon>
-            <button
-              type="button"
-              onClick={() => setSnapToGrid((value) => !value)}
-              className={cn("rounded-full px-3 py-1.5 text-xs font-semibold", snapToGrid ? "bg-[#d5b975] text-[#18201b]" : "text-white/50")}
-            >
-              Snap
-            </button>
-          </div>
           <div className="sticky bottom-0 z-20">
             <TemplateTimeline
               document={editor.document}
               selectedLayer={selectedLayer}
               playbackMs={playbackMs}
               playing={playing}
+              collapsed={timelineCollapsed}
               onPlaybackChange={(value) => {
                 setPlaybackMs(value);
                 setPlaying(false);
@@ -529,11 +536,12 @@ export function TemplateStudioClient({ initialTemplate }: TemplateStudioClientPr
               onSelectLayer={(id) => editor.setSelectedLayerIds([id])}
               onTimelineLayerChange={editor.updateLayer}
               onTimelineInteractionEnd={editor.commitCurrentInteraction}
+              onToggleCollapsed={() => setTimelineCollapsed((value) => !value)}
             />
           </div>
         </main>
 
-        <aside className="min-h-0 overflow-y-auto overscroll-contain border-l border-white/10 bg-[#f5f0e7] text-[#202520]">
+        <aside className="relative z-10 min-h-0 overflow-y-auto overscroll-contain border-l border-white/10 bg-[#f5f0e7] text-[#202520]">
           {selectedLayer ? (
             <LayerInspector layer={selectedLayer} onChange={(patch) => editor.updateLayer(selectedLayer.id, patch)} />
           ) : editor.selectedLayers.length > 1 ? (

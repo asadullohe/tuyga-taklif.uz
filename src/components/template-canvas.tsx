@@ -15,7 +15,12 @@ import {
 } from "react-konva";
 import useImage from "use-image";
 import { loadGoogleFonts } from "@/lib/google-fonts";
-import { getLayerPermissions, normalizeTemplateDocument, resolveLayerText } from "@/lib/template-document";
+import {
+  getLayerKeyframeState,
+  getLayerPermissions,
+  normalizeTemplateDocument,
+  resolveLayerText
+} from "@/lib/template-document";
 import type {
   TemplateDocument,
   TemplateCountdownLayer,
@@ -433,9 +438,15 @@ function TemplateCanvasComponent({
     (value: number) => {
       let contentLayer: Konva.Layer | null = null;
       for (const layer of document.layers) {
+        const layerNode = nodeRefs.current.get(layer.id);
         const node = motionNodeRefs.current.get(layer.id);
         if (!node) continue;
         contentLayer ??= node.getLayer();
+        const keyframe = getLayerKeyframeState(layer, value);
+        layerNode?.position({ x: keyframe.x, y: keyframe.y });
+        layerNode?.scale({ x: keyframe.scale, y: keyframe.scale });
+        layerNode?.rotation(keyframe.rotation);
+        layerNode?.opacity(keyframe.opacity);
         const motion = getMotionState(layer, value);
         node.position({
           x: motion.x + (motion.scale === 1 ? 0 : layer.width / 2),
@@ -486,6 +497,9 @@ function TemplateCanvasComponent({
       if (!stage) return "";
       const overlays = stage.find(".editor-overlay");
       const motionNodes = stage.find(".motion-content");
+      const layerNodes = document.layers
+        .map((layer) => ({ layer, node: nodeRefs.current.get(layer.id) }))
+        .filter((item): item is { layer: TemplateLayer; node: Konva.Node } => Boolean(item.node));
       const textNodes = stage.find<Konva.Text>(".animated-text");
       const textClips = stage.find<Konva.Group>(".text-clip");
       const motionState = motionNodes.map((node) => ({
@@ -497,6 +511,15 @@ function TemplateCanvasComponent({
         scaleY: node.scaleY(),
         offsetX: node.offsetX(),
         offsetY: node.offsetY()
+      }));
+      const layerState = layerNodes.map(({ node }) => ({
+        node,
+        x: node.x(),
+        y: node.y(),
+        scaleX: node.scaleX(),
+        scaleY: node.scaleY(),
+        rotation: node.rotation(),
+        opacity: node.opacity()
       }));
       const textState = textNodes.map((node) => ({
         node,
@@ -515,6 +538,12 @@ function TemplateCanvasComponent({
         node.scale({ x: 1, y: 1 });
         node.offset({ x: 0, y: 0 });
       });
+      layerNodes.forEach(({ layer, node }) => {
+        node.position({ x: layer.x, y: layer.y });
+        node.scale({ x: 1, y: 1 });
+        node.rotation(layer.rotation);
+        node.opacity(layer.opacity);
+      });
       for (const layer of document.layers) {
         if (layer.type !== "text") continue;
         const textNode = textNodeRefs.current.get(layer.id);
@@ -532,6 +561,12 @@ function TemplateCanvasComponent({
         node.opacity(state.opacity);
         node.scale({ x: state.scaleX, y: state.scaleY });
         node.offset({ x: state.offsetX, y: state.offsetY });
+      });
+      layerState.forEach(({ node, ...state }) => {
+        node.position({ x: state.x, y: state.y });
+        node.scale({ x: state.scaleX, y: state.scaleY });
+        node.rotation(state.rotation);
+        node.opacity(state.opacity);
       });
       textState.forEach(({ node, ...state }) => {
         node.text(state.text);
@@ -701,6 +736,7 @@ function TemplateCanvasComponent({
                   ? layer.src
                   : "";
             const motion = getMotionState(layer, playbackMs);
+            const keyframe = getLayerKeyframeState(layer, playbackMs ?? 0);
             const resolvedText = layer.type === "text" ? resolveLayerText(layer, data) : "";
             const textMotion =
               layer.type === "text"
@@ -715,12 +751,18 @@ function TemplateCanvasComponent({
                   if (node) nodeRefs.current.set(layer.id, node);
                   else nodeRefs.current.delete(layer.id);
                 }}
-                x={layer.x}
-                y={layer.y}
+                {...(playing
+                  ? {}
+                  : {
+                      x: keyframe.x,
+                      y: keyframe.y,
+                      scaleX: keyframe.scale,
+                      scaleY: keyframe.scale,
+                      rotation: keyframe.rotation,
+                      opacity: keyframe.opacity
+                    })}
                 width={layer.width}
                 height={layer.height}
-                rotation={layer.rotation}
-                opacity={layer.opacity}
                 draggable={draggable}
                 listening={interactive || layer.type === "image"}
                 {...shadowProps(layer)}
@@ -939,10 +981,11 @@ export function TemplateDocumentPreview({ document, data, className }: TemplateD
       (layer) =>
         layer.motion &&
         (layer.motion.enter !== "none" ||
-          layer.motion.exit !== "none" ||
-          layer.motion.textEffect !== "none" ||
+          (layer.motion.exit ?? "none") !== "none" ||
+          (layer.motion.textEffect ?? "none") !== "none" ||
+          (layer.motion.keyframes?.length ?? 0) > 0 ||
           layer.motion.startMs > 0 ||
-          layer.motion.endMs < duration)
+          (layer.motion.endMs ?? duration) < duration)
     );
     if (reducedMotion || !hasMotion) {
       setPlaying(false);

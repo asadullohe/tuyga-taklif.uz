@@ -42,6 +42,16 @@ export type TemplateLayerPermissions = {
   cropEditable?: boolean;
 };
 
+export type TemplateLayerKeyframe = {
+  id: string;
+  timeMs: number;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  opacity: number;
+};
+
 export type TemplateLayerMotion = {
   startMs: number;
   durationMs: number;
@@ -51,6 +61,7 @@ export type TemplateLayerMotion = {
   enter: "none" | "fade" | "rise" | "slide-left" | "slide-right" | "zoom";
   exit: "none" | "fade" | "rise" | "slide-left" | "slide-right" | "zoom";
   textEffect: "none" | "typewriter" | "word-reveal" | "letter-reveal" | "tracking" | "wipe";
+  keyframes: TemplateLayerKeyframe[];
 };
 
 export type TemplateLayerBase = {
