@@ -380,12 +380,15 @@ export async function publishInvitation(invitationId: string, userId: string) {
   const invitation = await getInvitationForUser(invitationId, userId);
   if (!invitation) return null;
 
-  const baseSlug = makeSlug(`${invitation.formData.groomName}-va-${invitation.formData.brideName}`);
-  let slug = baseSlug;
-  let counter = 2;
-  while (await getInvitationBySlug(slug)) {
-    slug = `${baseSlug}-${counter}`;
-    counter += 1;
+  let slug = invitation.slug;
+  if (!slug) {
+    const baseSlug = makeSlug(`${invitation.formData.groomName}-va-${invitation.formData.brideName}`);
+    slug = baseSlug;
+    let counter = 2;
+    while (await getInvitationBySlug(slug)) {
+      slug = `${baseSlug}-${counter}`;
+      counter += 1;
+    }
   }
 
   const supabase = supabaseOrNull();

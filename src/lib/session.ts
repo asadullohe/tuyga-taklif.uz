@@ -7,6 +7,7 @@ import type { AppUser } from "@/types";
 
 const COOKIE_NAME = "tuyga_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
+const DEV_SESSION_SECRET = "dev-session-secret-change-before-production";
 
 type SessionPayload = {
   userId: string;
@@ -15,7 +16,14 @@ type SessionPayload = {
 };
 
 function getSecret() {
-  return process.env.APP_SESSION_SECRET || "dev-session-secret-change-before-production";
+  const secret = process.env.APP_SESSION_SECRET;
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("APP_SESSION_SECRET is required in production");
+  }
+
+  return DEV_SESSION_SECRET;
 }
 
 function base64Url(input: Buffer | string) {

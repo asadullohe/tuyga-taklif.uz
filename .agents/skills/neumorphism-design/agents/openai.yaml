@@ -1,0 +1,4 @@
+interface:
+  display_name: "Neumorphism Design"
+  short_description: "Build accessible soft UI interfaces"
+  default_prompt: "Use $neumorphism-design to design or refine this interface with accessible neumorphic styling."

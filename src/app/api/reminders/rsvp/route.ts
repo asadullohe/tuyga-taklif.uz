@@ -13,6 +13,10 @@ export async function POST(request: Request) {
 
 async function runRsvpReminders(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret && process.env.NODE_ENV === "production") {
+    return NextResponse.json({ message: "CRON_SECRET is required in production" }, { status: 500 });
+  }
+
   if (cronSecret) {
     const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     if (token !== cronSecret) {
