@@ -50,14 +50,20 @@ Loyiha Next.js App Router, TypeScript, TailwindCSS, Supabase va Telegram auth/re
 
 ## P1: MVP sifatini yopish
 
+- [x] Momento Light premium public template qo'shish.
+  - [x] `momento-light` template ro'yxatga qo'shildi.
+  - [x] Public sahifa uchun coded multi-section layout qo'shildi.
+  - [x] Optional media/map/gift/detail fieldlari schema va type'larga qo'shildi.
+  - [x] Calendar/countdown/default fallback helperlari unit test bilan yopildi.
 - [ ] Test infratuzilmasi qo'shish.
   - Unit: slug, Telegram payload verify, validation schema, reminder due logic.
   - API: invitation create/update/publish, RSVP create/list, reminder endpoint auth.
   - E2E: login/dev auth, invitation create, edit, publish, public RSVP.
 - [ ] RSVP oqimini mustahkamlash.
-  - Duplicate RSVP siyosati: bir mehmon qayta yuborsa update bo'ladimi yoki yangi yozuvmi.
-  - Public guest board privacy sozlamasi: hamma mehmonlar ro'yxati ochiq turishi product qarori bilan tasdiqlansin.
-  - Rate limit yoki basic abuse protection qo'shish.
+  - [x] Duplicate RSVP siyosati: bir invitation ichida bir xil ism qayta yuborilsa mavjud RSVP update bo'ladi.
+  - [x] Public guest board privacy sozlamasi: public tomonda mehmon ismlari anonim ko'rsatiladi.
+  - [x] RSVP helperlari uchun unit testlar qo'shildi.
+  - [x] RSVP POST endpoint uchun basic in-memory rate limit va unit testlar qo'shildi.
 - [ ] Telegram reminder oqimini yakunlash.
   - Timezone `+05:00` hard-code qilingan; invitation yoki loyiha sozlamasiga chiqarish.
   - Webhook setup guide va secret header tekshiruvini deploy hujjatiga kiritish.

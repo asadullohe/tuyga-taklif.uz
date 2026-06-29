@@ -3,15 +3,15 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Search, UserCheck, UserX, Users } from "lucide-react";
+import { Bell, UserCheck, UserX, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { Rsvp, RsvpStatus } from "@/types";
+import type { PublicRsvp } from "@/lib/rsvp";
+import type { RsvpStatus } from "@/types";
 
 type RsvpPayload = {
-  rsvps: Rsvp[];
+  rsvps: PublicRsvp[];
   stats: {
     total: number;
     attending: number;
@@ -28,11 +28,10 @@ const filters: { value: Filter; label: string }[] = [
   { value: "not_attending", label: "Kelmayman" }
 ];
 
-const emptyRsvps: Rsvp[] = [];
+const emptyRsvps: PublicRsvp[] = [];
 
 export function RsvpGuestBoard({ slug }: { slug: string }) {
   const [filter, setFilter] = useState<Filter>("all");
-  const [query, setQuery] = useState("");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["public-rsvps", slug],
@@ -48,13 +47,10 @@ export function RsvpGuestBoard({ slug }: { slug: string }) {
   const stats = data?.stats ?? { total: 0, attending: 0, notAttending: 0, guests: 0 };
 
   const filteredRsvps = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
     return rsvps.filter((rsvp) => {
-      const matchesStatus = filter === "all" || rsvp.status === filter;
-      const matchesQuery = normalizedQuery.length === 0 || rsvp.guestName.toLowerCase().includes(normalizedQuery);
-      return matchesStatus && matchesQuery;
+      return filter === "all" || rsvp.status === filter;
     });
-  }, [filter, query, rsvps]);
+  }, [filter, rsvps]);
 
   return (
     <Card className="overflow-hidden border-primary/15 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(241,246,241,0.92))] shadow-xl shadow-primary/5">
@@ -62,7 +58,7 @@ export function RsvpGuestBoard({ slug }: { slug: string }) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-primary/70">Mehmonlar javobi</p>
-            <CardTitle className="mt-2 text-xl">So'rovnoma ro'yxati</CardTitle>
+            <CardTitle className="mt-2 text-xl">Javoblar holati</CardTitle>
           </div>
           <Badge className="rounded-full bg-primary px-3 py-1 text-primary-foreground">{stats.total} javob</Badge>
         </div>
@@ -89,16 +85,6 @@ export function RsvpGuestBoard({ slug }: { slug: string }) {
           ))}
         </div>
 
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="rounded-full pl-9"
-            placeholder="Ism bo'yicha qidirish"
-          />
-        </label>
-
         <div className="max-h-[360px] space-y-2 overflow-auto pr-1">
           {isLoading ? (
             <StateText text="Javoblar yuklanmoqda..." />
@@ -124,7 +110,7 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
   );
 }
 
-function RsvpRow({ rsvp }: { rsvp: Rsvp }) {
+function RsvpRow({ rsvp }: { rsvp: PublicRsvp }) {
   const attending = rsvp.status === "attending";
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border bg-white/75 p-3 shadow-sm">

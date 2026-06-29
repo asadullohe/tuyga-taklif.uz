@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { InvitationPreview } from "@/components/invitation-preview";
+import { MomentoLightInvitation } from "@/components/momento-light-invitation";
 import { QrCodeCard } from "@/components/qr-code-card";
 import { RsvpForm } from "@/components/rsvp-form";
 import { RsvpGuestBoard } from "@/components/rsvp-guest-board";
@@ -47,6 +48,10 @@ export default async function PublicInvitationPage({ params }: PageProps) {
 
   await trackEvent(invitation.id, "opened");
   const publicUrl = `${appUrl()}/a/${slug}`;
+
+  if (invitation.templateId === "momento-light") {
+    return <MomentoLightInvitation data={invitation.formData} slug={slug} publicUrl={publicUrl} />;
+  }
 
   return (
     <>

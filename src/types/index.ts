@@ -22,6 +22,19 @@ export type WeddingFormData = {
   hostText: string;
   coverImageUrl?: string;
   musicUrl?: string;
+  heroVideoUrl?: string;
+  heroImageUrl?: string;
+  coupleImageUrl?: string;
+  venueImageUrl1?: string;
+  venueImageUrl2?: string;
+  googleMapsUrl?: string;
+  yandexMapsUrl?: string;
+  dressCodeText?: string;
+  formatText?: string;
+  giftText?: string;
+  telegramGroupUrl?: string;
+  openingQuote?: string;
+  calendarNote?: string;
 };
 
 export type TemplateField = {

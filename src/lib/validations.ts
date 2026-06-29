@@ -200,7 +200,20 @@ export const weddingFormSchema = z.object({
   venueAddress: z.string().min(5, "Manzilni to'liqroq kiriting"),
   hostText: z.string().min(10, "Taklif matni kamida 10 ta belgidan iborat bo'lishi kerak"),
   coverImageUrl: z.string().url("Rasm URL noto'g'ri").optional().or(z.literal("")),
-  musicUrl: z.string().url("Musiqa URL noto'g'ri").optional().or(z.literal(""))
+  musicUrl: z.string().url("Musiqa URL noto'g'ri").optional().or(z.literal("")),
+  heroVideoUrl: z.string().url("Hero video URL noto'g'ri").optional().or(z.literal("")),
+  heroImageUrl: z.string().url("Hero rasm URL noto'g'ri").optional().or(z.literal("")),
+  coupleImageUrl: z.string().url("Juftlik rasmi URL noto'g'ri").optional().or(z.literal("")),
+  venueImageUrl1: z.string().url("Venue rasmi 1 URL noto'g'ri").optional().or(z.literal("")),
+  venueImageUrl2: z.string().url("Venue rasmi 2 URL noto'g'ri").optional().or(z.literal("")),
+  googleMapsUrl: z.string().url("Google Maps URL noto'g'ri").optional().or(z.literal("")),
+  yandexMapsUrl: z.string().url("Yandex Maps URL noto'g'ri").optional().or(z.literal("")),
+  dressCodeText: z.string().optional(),
+  formatText: z.string().optional(),
+  giftText: z.string().optional(),
+  telegramGroupUrl: z.string().url("Telegram guruh URL noto'g'ri").optional().or(z.literal("")),
+  openingQuote: z.string().optional(),
+  calendarNote: z.string().optional()
 });
 
 export const rsvpSchema = z.object({

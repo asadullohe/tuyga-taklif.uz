@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { findDuplicateRsvp } from "@/lib/rsvp";
 import { makeSlug } from "@/lib/slug";
 import { defaultWeddingData, seedTemplates, weddingTemplateFields } from "@/lib/templates";
 import type {
@@ -41,6 +42,12 @@ type StoredRsvp = Rsvp & {
 
 type CreateRsvpInput = Omit<Rsvp, "id" | "invitationId" | "createdAt"> & {
   reminderToken?: string | null;
+};
+
+type SaveRsvpResult = {
+  rsvp: Rsvp;
+  created: boolean;
+  previousRsvp?: Rsvp | null;
 };
 
 type DemoStore = {
@@ -434,9 +441,36 @@ export async function getInvitationBySlug(slug: string) {
   };
 }
 
-export async function createRsvp(invitationId: string, input: CreateRsvpInput) {
+export async function saveRsvpResponse(invitationId: string, input: CreateRsvpInput): Promise<SaveRsvpResult> {
   const supabase = supabaseOrNull();
   if (supabase) {
+    const { data: existingRows, error: lookupError } = await supabase
+      .from("rsvps")
+      .select("*")
+      .eq("invitation_id", invitationId);
+    if (lookupError) throw lookupError;
+
+    const existingRow = findDuplicateRsvp((existingRows ?? []).map(rsvpFromRow), input.guestName);
+    if (existingRow) {
+      const keepsLinkedReminder = Boolean(input.reminderEnabled && existingRow.telegramChatId);
+      const { data, error } = await supabase
+        .from("rsvps")
+        .update({
+          guest_name: input.guestName,
+          status: input.status,
+          guest_count: input.guestCount,
+          reminder_enabled: input.reminderEnabled,
+          telegram_chat_id: keepsLinkedReminder ? existingRow.telegramChatId : input.telegramChatId || null,
+          reminder_token: keepsLinkedReminder ? null : input.reminderToken || null,
+          reminder_sent_at: input.reminderEnabled ? existingRow.reminderSentAt ?? null : null
+        })
+        .eq("id", existingRow.id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return { rsvp: rsvpFromRow(data), created: false, previousRsvp: existingRow };
+    }
+
     const { data, error } = await supabase
       .from("rsvps")
       .insert({
@@ -451,7 +485,23 @@ export async function createRsvp(invitationId: string, input: CreateRsvpInput) {
       .select("*")
       .single();
     if (error) throw error;
-    return rsvpFromRow(data);
+    return { rsvp: rsvpFromRow(data), created: true, previousRsvp: null };
+  }
+
+  const existing = findDuplicateRsvp(memory.rsvps.filter((rsvp) => rsvp.invitationId === invitationId), input.guestName);
+  if (existing) {
+    const previousRsvp = publicRsvp({ ...existing });
+    const keepsLinkedReminder = Boolean(input.reminderEnabled && existing.telegramChatId);
+    Object.assign(existing, {
+      guestName: input.guestName,
+      status: input.status,
+      guestCount: input.guestCount,
+      reminderEnabled: input.reminderEnabled,
+      telegramChatId: keepsLinkedReminder ? existing.telegramChatId : input.telegramChatId || null,
+      reminderToken: keepsLinkedReminder ? null : input.reminderToken || null,
+      reminderSentAt: input.reminderEnabled ? existing.reminderSentAt : null
+    });
+    return { rsvp: publicRsvp(existing), created: false, previousRsvp };
   }
 
   const rsvp: StoredRsvp = {
@@ -467,7 +517,7 @@ export async function createRsvp(invitationId: string, input: CreateRsvpInput) {
     createdAt: now()
   };
   memory.rsvps.push(rsvp);
-  return publicRsvp(rsvp);
+  return { rsvp: publicRsvp(rsvp), created: true, previousRsvp: null };
 }
 
 export async function listRsvpsForInvitation(invitationId: string) {

@@ -131,6 +131,7 @@ export function NewInvitationClient({ templates }: { templates: InvitationTempla
 }
 
 function getTemplateTags(id: string) {
+  if (id === "momento-light") return ["Multi-section", "Light luxury", "RSVP"];
   if (id.includes("fotiha")) return ["Fotiha", "Blue", "Formal"];
   if (id.includes("anniversary")) return ["Yubiley", "Midnight", "Gold"];
   if (id.includes("editorial-mono")) return ["Nikoh", "Editorial", "Mono"];
@@ -147,6 +148,7 @@ function getTemplateTags(id: string) {
 }
 
 function getTemplateSwatch(id: string) {
+  if (id === "momento-light") return "bg-[radial-gradient(circle_at_26%_22%,rgba(255,255,255,.9),transparent_24%),repeating-linear-gradient(105deg,rgba(120,94,58,.14)_0_1px,transparent_1px_18px),linear-gradient(135deg,#fffaf2,#eadcc8_48%,#f8efe1)]";
   if (id.includes("blue-fotiha")) return "bg-[radial-gradient(circle_at_50%_45%,#f6f2e9_0_34%,transparent_35%),linear-gradient(135deg,#102b4e,#294f72)]";
   if (id.includes("midnight-anniversary")) return "bg-[radial-gradient(circle_at_50%_42%,#caa45d_0_14%,transparent_15%),radial-gradient(circle_at_50%_42%,transparent_0_36%,#6d5936_37%_38%,transparent_39%),#111018]";
   if (id.includes("editorial-mono")) return "bg-[linear-gradient(90deg,#161616_0_20%,#f3efe6_20%_100%)]";

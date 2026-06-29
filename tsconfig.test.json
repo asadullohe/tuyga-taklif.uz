@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": ".tmp-tests",
+    "rootDir": "."
+  },
+  "include": [
+    "src/lib/momento-light.ts",
+    "src/lib/rate-limit.ts",
+    "src/lib/rsvp.ts",
+    "src/types/index.ts",
+    "tests/**/*.ts"
+  ]
+}

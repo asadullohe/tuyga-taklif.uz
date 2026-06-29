@@ -3,6 +3,7 @@ import Image from "next/image";
 import { CalendarDays, Clock, Heart, MapPin, Sparkles } from "lucide-react";
 import { TemplateDocumentPreview } from "@/components/template-canvas";
 import type { TemplateDocument, WeddingFormData } from "@/types";
+import { getCalendarModel, getMomentoText } from "@/lib/momento-light";
 import { cn, formatDateTime, getUzDateParts } from "@/lib/utils";
 
 type InvitationPreviewProps = {
@@ -286,6 +287,10 @@ export function InvitationPreview({
     return <TemplateDocumentPreview document={designDocument} data={data} className={className} />;
   }
 
+  if (variant === "momento-light") {
+    return <MomentoLightPreview data={data} className={className} />;
+  }
+
   const theme = themes[variant] ?? fallbackTheme;
   const dateParts = data.eventDate ? getUzDateParts(data.eventDate) : null;
   const model: PreviewModel = {
@@ -332,6 +337,120 @@ export function InvitationPreview({
       <DecorativeMotion motif={theme.motif} />
       <Layout model={model} />
     </section>
+  );
+}
+
+function MomentoLightPreview({ data, className }: { data: WeddingFormData; className?: string }) {
+  const names = `${data.groomName || "Kuyov"} & ${data.brideName || "Kelin"}`;
+  const formattedDate = formatDateTime(data.eventDate, data.eventTime) || "Sana tanlanmagan";
+  const calendar = data.eventDate ? getCalendarModel(data.eventDate) : null;
+  const heroImage = data.heroImageUrl || data.coupleImageUrl || data.coverImageUrl;
+  const venueImage = data.venueImageUrl1 || data.venueImageUrl2 || data.coverImageUrl;
+  const eventDay = calendar?.days.find((day) => day.isEventDay)?.day ?? "21";
+  const previewDays = calendar?.days.slice(0, 35) ?? [];
+
+  return (
+    <section
+      className={cn(
+        "relative mx-auto w-full max-w-[560px] overflow-hidden rounded-lg border border-stone-200 bg-[#f8f1e7] p-4 text-stone-900 shadow-2xl sm:p-8",
+        className
+      )}
+    >
+      <div className="absolute inset-0 bg-[repeating-linear-gradient(105deg,rgba(120,94,58,.10)_0_1px,transparent_1px_18px),radial-gradient(circle_at_24%_18%,rgba(255,255,255,.85),transparent_28%),linear-gradient(135deg,#fffaf2,#eadcc8_52%,#f8efe1)]" />
+      <div className="absolute left-[-12%] top-[-6%] h-52 w-[124%] rotate-[-7deg] bg-white/35 blur-sm" />
+
+      <article className="relative mx-auto min-h-[720px] max-w-[430px] overflow-hidden rounded-[1.4rem] border border-white/80 bg-white/62 shadow-[0_30px_90px_rgba(104,79,45,.22)] backdrop-blur">
+        <div
+          className="relative min-h-[310px] overflow-hidden bg-[linear-gradient(135deg,#d8c2a3,#fff6ea_54%,#b59670)]"
+          style={heroImage ? { backgroundImage: `linear-gradient(180deg, rgba(31,24,17,.18), rgba(31,24,17,.58)), url(${heroImage})`, backgroundPosition: "center", backgroundSize: "cover" } : undefined}
+        >
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/55 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-7 text-white">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-[11px] font-semibold uppercase backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5" />
+              Momento Light
+            </div>
+            <h1 className="wedding-script text-6xl leading-none drop-shadow">{names}</h1>
+            <p className="mt-4 flex items-center gap-2 text-sm font-semibold">
+              <CalendarDays className="h-4 w-4" />
+              {formattedDate}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-6 px-6 py-7">
+          <div className="rounded-lg border border-stone-200/80 bg-white/70 p-5 text-center">
+            <p className="text-[11px] font-semibold uppercase text-stone-500">Sizga taklifnoma keldi</p>
+            <p className="mx-auto mt-3 max-w-[260px] text-sm leading-6 text-stone-600">
+              {getMomentoText(data, "openingQuote")}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-[1fr_120px] gap-4">
+            <div className="rounded-lg border border-stone-200/80 bg-white/70 p-4">
+              <p className="text-[11px] font-semibold uppercase text-stone-500">{calendar?.monthLabel || "TO'Y OYI"}</p>
+              <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] text-stone-500">
+                {["D", "S", "Ch", "P", "J", "Sh", "Y"].map((day) => (
+                  <span key={day}>{day}</span>
+                ))}
+                {previewDays.map((day) => (
+                  <span
+                    key={day.key}
+                    className={cn(
+                      "flex h-6 items-center justify-center rounded-full text-[11px]",
+                      day.isEventDay && "bg-stone-900 text-white"
+                    )}
+                  >
+                    {day.day}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col justify-center rounded-lg bg-stone-900 p-4 text-center text-white">
+              <Heart className="mx-auto h-5 w-5 fill-white" />
+              <b className="mt-3 text-4xl leading-none">{eventDay}</b>
+              <span className="mt-1 text-[10px] uppercase text-white/65">to'y kuni</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <PreviewInfo icon={<Clock className="h-4 w-4" />} label="Vaqt" value={data.eventTime || "18:00"} />
+            <PreviewInfo icon={<MapPin className="h-4 w-4" />} label="Manzil" value={data.venueName || "To'yxona"} />
+          </div>
+
+          <div className="grid grid-cols-[1fr_96px] gap-3">
+            <div className="rounded-lg border border-stone-200/80 bg-white/70 p-4">
+              <p className="text-[11px] font-semibold uppercase text-stone-500">Dress code</p>
+              <p className="mt-2 text-sm font-medium leading-6 text-stone-700">{getMomentoText(data, "dressCodeText")}</p>
+            </div>
+            <div
+              className="rounded-lg border border-white/80 bg-[linear-gradient(135deg,#dfcfb8,#fff7eb)]"
+              style={venueImage ? { backgroundImage: `linear-gradient(180deg, rgba(255,255,255,.1), rgba(76,56,34,.22)), url(${venueImage})`, backgroundPosition: "center", backgroundSize: "cover" } : undefined}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {["Unlock", "Countdown", "Calendar", "RSVP", "Guest board"].map((item) => (
+              <span key={item} className="rounded-full border border-stone-200 bg-white/70 px-3 py-1.5 text-[11px] font-semibold text-stone-600">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function PreviewInfo({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-stone-200/80 bg-white/70 p-4">
+      <div className="flex items-center gap-2 text-stone-500">
+        {icon}
+        <span className="text-[11px] font-semibold uppercase">{label}</span>
+      </div>
+      <p className="mt-2 text-sm font-semibold leading-5 text-stone-800">{value}</p>
+    </div>
   );
 }
 

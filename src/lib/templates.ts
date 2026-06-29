@@ -19,6 +19,36 @@ export const weddingTemplateFields: InvitationTemplate["schema"] = [
   { name: "musicUrl", label: "Musiqa URL", type: "url", placeholder: "https://..." }
 ];
 
+export const momentoLightTemplateFields: InvitationTemplate["schema"] = [
+  { name: "brideName", label: "Kelin ismi", type: "text", placeholder: "Safiya", required: true },
+  { name: "groomName", label: "Kuyov ismi", type: "text", placeholder: "Timur", required: true },
+  { name: "eventDate", label: "Sana", type: "date", required: true },
+  { name: "eventTime", label: "Vaqt", type: "time", required: true },
+  { name: "venueName", label: "To'yxona", type: "text", placeholder: "AFROSIYOB restorani", required: true },
+  { name: "venueAddress", label: "Manzil", type: "textarea", placeholder: "Farg'ona, Istiqlol ko'chasi, 10", required: true },
+  {
+    name: "hostText",
+    label: "Taklif matni",
+    type: "textarea",
+    placeholder: "Biz uchun aziz bo'lgan ushbu kunni siz bilan birga nishonlashni istaymiz.",
+    required: true
+  },
+  { name: "openingQuote", label: "Hero matni", type: "textarea", placeholder: "Sizning ishtirokingiz — biz uchun eng qadrli sovg'a" },
+  { name: "heroVideoUrl", label: "Hero video URL", type: "url", placeholder: "https://..." },
+  { name: "heroImageUrl", label: "Hero rasm URL", type: "url", placeholder: "https://..." },
+  { name: "coupleImageUrl", label: "Juftlik rasmi URL", type: "url", placeholder: "https://..." },
+  { name: "venueImageUrl1", label: "Venue rasmi 1 URL", type: "url", placeholder: "https://..." },
+  { name: "venueImageUrl2", label: "Venue rasmi 2 URL", type: "url", placeholder: "https://..." },
+  { name: "googleMapsUrl", label: "Google Maps URL", type: "url", placeholder: "https://maps.app.goo.gl/..." },
+  { name: "yandexMapsUrl", label: "Yandex Maps URL", type: "url", placeholder: "https://yandex.uz/maps/..." },
+  { name: "dressCodeText", label: "Kiyinish kodi", type: "textarea", placeholder: "Rasmiy, yorug' ranglar" },
+  { name: "formatText", label: "Format", type: "textarea", placeholder: "Halol, tantanali tadbir" },
+  { name: "giftText", label: "Mehmonlarga iltimos", type: "textarea", placeholder: "Biz uchun eng muhimi — sizning yonimizda bo'lishingiz." },
+  { name: "telegramGroupUrl", label: "Telegram guruh URL", type: "url", placeholder: "https://t.me/..." },
+  { name: "calendarNote", label: "Kalendardagi izoh", type: "text", placeholder: "yurak — to'y kuni" },
+  { name: "musicUrl", label: "Musiqa URL", type: "url", placeholder: "https://..." }
+];
+
 export const defaultWeddingData: WeddingFormData = {
   brideName: "Zebo",
   groomName: "Ali",
@@ -28,8 +58,35 @@ export const defaultWeddingData: WeddingFormData = {
   venueAddress: "Toshkent shahri, Chilonzor tumani",
   hostText: "Sizni aziz farzandlarimizning nikoh to'yiga lutfan taklif qilamiz.",
   coverImageUrl: "",
-  musicUrl: ""
+  musicUrl: "",
+  heroVideoUrl: "",
+  heroImageUrl: "",
+  coupleImageUrl: "",
+  venueImageUrl1: "",
+  venueImageUrl2: "",
+  googleMapsUrl: "",
+  yandexMapsUrl: "",
+  dressCodeText: "Rasmiy, yorug' ranglar afzal.",
+  formatText: "Halol, tantanali tadbir.",
+  giftText: "Biz uchun eng muhimi — to'y oqshomida yonimizda bo'lishingiz.",
+  telegramGroupUrl: "",
+  openingQuote: "Sizning ishtirokingiz — biz uchun eng qadrli sovg'a",
+  calendarNote: "yurak — to'y kuni"
 };
+
+const codedTemplates: InvitationTemplate[] = [
+  {
+    id: "momento-light",
+    name: "Momento Light",
+    category: "wedding",
+    description: "Oq fabric hero, unlock screen, countdown, calendar, venue gallery va RSVP bilan premium sahifa.",
+    previewImageUrl: null,
+    schema: momentoLightTemplateFields,
+    status: "active",
+    createdAt: new Date("2026-06-25").toISOString(),
+    updatedAt: new Date("2026-06-25").toISOString()
+  }
+];
 
 const legacyTemplates: InvitationTemplate[] = [
   ["classic-rose", "Classic Rose", "Foto fon, markaziy romantik card va floating heart entrance."],
@@ -95,4 +152,4 @@ const studioTemplates: InvitationTemplate[] = [
   updatedAt: new Date("2026-06-08").toISOString()
 }));
 
-export const seedTemplates: InvitationTemplate[] = [...studioTemplates, ...legacyTemplates];
+export const seedTemplates: InvitationTemplate[] = [...codedTemplates, ...studioTemplates, ...legacyTemplates];
